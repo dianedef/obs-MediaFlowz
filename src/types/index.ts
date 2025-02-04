@@ -1,0 +1,1 @@
+export type TViewMode = 'tab' | 'sidebar' | 'popup';

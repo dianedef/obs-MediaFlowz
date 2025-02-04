@@ -1,0 +1,15 @@
+# Obsidian
+.obsidian/
+data.json
+
+# Build
+main.js
+main.js.map
+*.css.map
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
