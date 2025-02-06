@@ -11,7 +11,7 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
     outDir: '.',
     emptyOutDir: false,
     lib: {
@@ -24,13 +24,15 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'src/main.ts')
       },
-      external: ['obsidian', '@codemirror/state', '@codemirror/view', '@codemirror/language'],
+      external: ['obsidian', '@codemirror/state', '@codemirror/view', '@codemirror/language', 'events', 'moment'],
       output: {
         globals: {
           obsidian: 'obsidian',
           '@codemirror/state': 'State',
           '@codemirror/view': 'View',
-          '@codemirror/language': 'Language'
+          '@codemirror/language': 'Language',
+          'events': 'events',
+          'moment': 'moment'
         }
       }
     }

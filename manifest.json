@@ -4,13 +4,13 @@
 	"version": "1.0.0",
 	"main": "main.js",
 	"minAppVersion": "0.15.0",
-	"description": "Enhance the YouTube experience in Obsidian with built-in playback controls",
+	"description": "Enhance the media experience in Obsidian with built-in controls and operations",
 	"author": "Diane Winflowz",
 	"isDesktopOnly": false,
 	"dependencies": {
 		"video.js": "^8.0.0",
 		"videojs-youtube": "^3.0.0"
 	},
-	"license": "Copyright © 2024. All rights reserved."
+	"license": "Copyright © 2025. All rights reserved."
 
 }

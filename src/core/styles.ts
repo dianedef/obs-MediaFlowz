@@ -45,7 +45,7 @@ const baseStyles = `
 
     .mediaflowz-info-bar.error {
         background-color: var(--background-modifier-error);
-        color: var(--text-on-accent);
+        color: white;
     }
 
     .mediaflowz-info-bar.info {

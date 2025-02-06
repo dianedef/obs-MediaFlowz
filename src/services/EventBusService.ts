@@ -13,7 +13,7 @@ import { EventEmitter } from 'events';
  * });
  */
 export class EventBusService {
-    private static instance: EventBusService;
+    private static instance: EventBusService | undefined;
     private eventEmitter: EventEmitter;
 
     private constructor() {
@@ -116,7 +116,7 @@ export class EventBusService {
     public static cleanup(): void {
         if (EventBusService.instance) {
             EventBusService.instance.eventEmitter.removeAllListeners();
-            EventBusService.instance = null;
+            EventBusService.instance = undefined;
         }
     }
 } 

@@ -224,7 +224,7 @@ class ImageWidget extends WidgetType {
             { 
                 text: `Envoyer vers ${this.getServiceDisplayName()}`, 
                 onClick: () => {
-                    this.showInfoBar('Fonctionnalité à venir', 'info', 2000);
+                    this.showInfoBar('Veuillez configurer un service cloud dans les settings Obsidian', 'error');
                 }
             },
             {

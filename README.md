@@ -1,62 +1,98 @@
-# MediaFlowz - Uploads for Obsidian
+# MediaFlowz - Image and GIF Management with Cloud Uploads
 (version FR en dessous)
 
-A powerful Obsidian plugin that transforms YouTube videos into rich Markdown notes with advanced AI features.
+A powerful Obsidian plugin that facilitates the management of images and GIFs, allowing seamless uploads to cloud storage with advanced features.
 
-### ✨ Key Features
+## ✨ Key Features
 
-- **Smart Video Management**
-  - Easy YouTube video import via URL
-  - Organize videos with custom tags
-  - Quick video library search
-  - Intuitive and responsive user interface
+### Smart Image Management
+- Easy import of images and GIFs via URL
+- Organize images with custom tags
+- Quick search through your image library
+- Intuitive and responsive user interface
 
-- **Advanced Content Processing**
-  - Automatic video metadata extraction
-  - Accurate transcription generation
-  - Clickable timestamp creation
-  - YouTube playlist support
+### Cloud Uploads
+- Upload images from the editor
+- Automatically replace local image links with cloud URLs
+- Support for custom domains for better branding and SEO when available in the service
+- Secure API communication for uploads
 
-- **AI Features (with OpenAI)**
-  - Automatic video summary generation
-  - Structured notes from transcriptions
-  - Smart key points extraction
-  - Automatic content translation
+### Supported Services
+- Cloudinary
+- Cloudflare Images
+- TwicPics
+- Bunny.net
+
+### Advanced Content Processing
+- Automatic metadata extraction for images
+- Image compression and optimization
+- Support for various image formats (JPEG, PNG, GIF, SVG, WebP)
+- Convert images to WebP format
+- Bulk add captions
+- Use TinyPNG's image compression service
 
 
-Suppresion des images : 
- - pour les images locales,supprime l'image du fichier markdown et du vault.
- - pour les images en ligne, supprime l'image du fichier markdown et du service en ligne.
+### Image Handling
+- Rename, move, and delete images both locally and in the cloud
+- Manage image links in your notes efficiently
+- Support for drag-and-drop uploads
+- Download media files from copied/pasted content of web pages
+- Save attachments next to notes in a folder named after the note
+- Download external images in your note, save them locally, and adjust the link to point to the local image files
+- Mouse wheel image zoom by pressing ALT
+- Rename images upon pasting
 
+### Viewing Options
+- Full screen on double-click: All images in the current note will be displayed at the bottom, allowing you to switch between thumbnails to view any image.
+- Pin Mode: When enabled, you can click and pop up 1 to 5 images at a time without a mask layer, allowing you to edit and look through your notes while images are being previewed.
 
-### 🚀 Installation
+### Image Naming
+- Set `imageNameKey` in frontmatter: While adding multiple images to one document, images can be named in the same format using `imageNameKey`.
+- The plugin will add a prefix/suffix if there's a file of the same name, ensuring unique names for images.
 
+## Available Variables
+- **`{{fileName}}`**: Name of the active file, without the ".md" extension.
+- **`{{imageNameKey}}`**: This variable is read from the markdown file's frontmatter, from the same key `imageNameKey`.
+- **`{{DATE:$FORMAT}}`**: Use `$FORMAT` to format the current date, where `$FORMAT` must be a Moment.js format string (e.g., `{{DATE:YYYY-MM-DD}}`).
+
+### Examples
+Here are some examples from pattern to image names (repeat in sequence), variables: `fileName = "My note"`, `imageNameKey = "foo"`:
+- `{{fileName}}`: My note, My note-1, My note-2
+- `{{imageNameKey}}`: foo, foo-1, foo-2
+- `{{imageNameKey}}-{{DATE:YYYYMMDD}}`: foo-20220408, foo-20220408-1, foo-20220408-2
+
+### Duplicate Number Handling
+- **Duplicate number at start (or end)**: If enabled, the duplicate number will be added at the start as a prefix for the image name; otherwise, it will be added at the end as a suffix.
+- **Duplicate number delimiter**: The delimiter to generate the number prefix/suffix for duplicated names. For example, if the value is `-`, the suffix will be like `-1`, `-2`, `-3`, and the prefix will be like `1-`, `2-`, `3-`.
+
+### Clear Unused Images
+- Find Orphaned Images: This plugin helps you keep your vault clean and organized by identifying and managing images that are not linked anywhere in your notes.
+  - Move to Obsidian Trash: Files are moved to the `.trash` under the Obsidian Vault.
+  - Move to System Trash: Files are moved to the Operating System trash.
+  - Permanently Delete: Files are destroyed permanently and cannot be reverted back.
+
+## 🚀 Installation
 1. In Obsidian, go to Settings > Third-party plugins
 2. Disable restricted mode
 3. Click "Browse" and search for "MediaFlowz"
 4. Install the plugin
 
-### ⚙️ Configuration
-
-- Set notes destination folder
-- Choose generated notes format
-- Configure transcription preferences
-- Add your OpenAI API key for AI features
+## ⚙️ Configuration
+- Set the destination folder for notes
+- Choose the format for generated notes
+- Configure cloud service settings (e.g., Cloudflare API token)
 - Customize note templates
 
-### 📝 Usage
-
-1. Paste a YouTube URL in the quick command
-2. Video is automatically analyzed and transcribed
-3. A structured note is generated with all elements
-4. Find your notes in the configured folder
+## 📝 Usage
+1. Paste an image or GIF URL in the quick command
+2. The image is automatically uploaded to the configured cloud service
+3. The link is replaced with the cloud URL in your notes
+4. Find your images in the configured folder
 
 ## 🔧 Technical Details
-
 - Built for Obsidian 1.0.0+
-- Uses YouTube Data API v3
-- OpenAI GPT integration
-- Efficient video processing
+- Uses Cloudflare Images for storage
+- Efficient image processing and optimization
 - Robust error handling
 - Secure API communication
 
@@ -91,3 +127,153 @@ Choose "origin type" as "Storage Zone" and select your previously created Storag
 If you want to use a custom hostname, that'll be better for SEO, you can do it. You'll be able to pull you images from your own domain then, not only from b-cdn.net.
 
 in Delivery > CDN > General > Hostnames you can add your custom hostname. Custom hostnames can be used instead of our default b-cdn.net hostname. After adding the hostname, create a CNAME record that direct to YourChoosenStorageZoneNameInStepBefore.b-cdn.net on your DNS provider/hosting platform.
+
+---
+HOW TO USE WITH CLOUDFLARE
+
+# Cloudflare Images Configuration for MediaFlowz
+
+## Prerequisites
+
+1. **Cloudflare Account**
+   - An active Cloudflare account
+   - A domain configured on Cloudflare (to serve images)
+
+2. **Cloudflare Images Subscription**
+   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Go to the "Images" section
+   - Activate the Cloudflare Images service
+
+## Cloudflare Images Configuration
+
+1. **Create an API Key**
+   - In the Cloudflare dashboard, go to "Manage Account"
+   - Click on "API Tokens"
+   - Select "Create a token"
+   - Use the "Cloudflare Images & Stream" template
+   - Ensure the permissions include:
+     - Images: Read and Write
+     - Stream: Read and Write
+   - Click on "Continue to summary"
+   - Click on "Create a token"
+   - **Important**: Copy and save the generated token, it will not be displayed again
+
+2. **Retrieve necessary information**
+   - **Account ID**: Visible in the dashboard URL or in "Account Home"
+   - **API Token**: The token you just created
+   - **Delivery Domain**: Your Cloudflare Images subdomain (format: imagedelivery.net)
+
+## MediaFlowz Plugin Configuration
+
+1. **In Obsidian**
+   - Open settings (Settings)
+   - Go to the MediaFlowz section
+   - Select "Cloudflare" as the service
+
+2. **Fill in the fields**
+   - Account ID
+   - API Token (the token created previously)
+   - Default Variant (optional, "public" by default)
+
+## Functionality
+
+1. **Image Upload**
+   - Copy-paste an image into your Obsidian note
+   - The image is automatically uploaded to Cloudflare Images
+   - The link is replaced with the Cloudflare Images URL
+
+2. **URL Format**
+   ```
+   https://imagedelivery.net/your-account-hash/image-id/variant
+   ```
+
+## Configuring a Subdomain for Your Cloudflare Images
+
+1. In the Cloudflare dashboard:
+   - Go to "Websites"
+   - Select your domain
+   - Go to "DNS"
+
+2. Add a new DNS record:
+   ```
+   Type: CNAME
+   Name: images (or the subdomain you want)
+   Target: imagedelivery.net
+   Proxy status: Proxied (enabled)
+   ```
+
+In the context of a DNS CNAME record, the "Target" is the destination address to which the subdomain will point. 
+
+To configure the CNAME record for Cloudflare Images:
+
+1. In the Cloudflare dashboard:
+   - Go to "Websites"
+   - Select your domain
+   - Go to "DNS"
+   - Click on "Add record"
+
+2. Configuration:
+   ```
+   Type: CNAME
+   Name: images (or the subdomain you want)
+   Target: imagedelivery.net
+   Proxy status: ✅ Proxied (important to enable the proxy)
+   TTL: Auto
+   ```
+
+Explanation:
+- `Name: images` = will create `images.yourdomain.com`
+- `Target: imagedelivery.net` = will redirect to the Cloudflare Images CDN
+- `Proxied: ✅` = enables the Cloudflare proxy (necessary for SSL and security)
+
+Once configured, you can use this subdomain in the plugin settings:
+```typescript
+customDomain: "images.yourdomain.com"
+```
+
+Do you want me to help you configure this DNS record?
+
+3. Let's modify the code to use this subdomain:
+
+```:src/core/services/CloudflareMediaService.ts
+
+```
+
+4. In the plugin settings, add your subdomain:
+   ```typescript
+   customDomain: "images.yourdomain.com"
+   ```
+
+Now, instead of having URLs like:
+```
+https://imagedelivery.net/your-account-id/image-id/public
+```
+
+You will have URLs like:
+```
+https://images.yourdomain.com/your-account-id/image-id/public
+```
+
+Advantages of this approach:
+1. Simpler to set up (no need for a Worker)
+2. Automatic SSL management by Cloudflare
+3. Same performance as the original URL
+4. Better branding with your own domain
+
+Do you want me to help you configure the DNS record for your subdomain?
+
+## Security
+
+- NEVER share your API token
+- Keep it in a secure password manager
+- In case of compromise, immediately revoke the token in the Cloudflare dashboard
+- Regularly monitor usage in the Cloudflare dashboard
+
+## Support
+
+- [Cloudflare Images Documentation](https://developers.cloudflare.com/images/)
+- [Cloudflare Stream Documentation](https://developers.cloudflare.com/stream/) 
+
+## instructions
+
+   aller dans https://dash.cloudflare.com/b805cca6c486d78d68e7a4498292be56/images/plans?configure=false et s"abonner au service

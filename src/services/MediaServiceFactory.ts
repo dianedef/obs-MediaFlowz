@@ -1,5 +1,5 @@
 import { App } from 'obsidian';
-import { IPluginSettings } from '@/types/settings';
+import { IPluginSettings, SupportedService } from '@/types/settings';
 import { IMediaUploadService } from '@/types/IMediaUploadService';
 import { CloudflareMediaService } from '@/services/CloudflareMediaService';
 import { LocalMediaService } from '@/services/LocalMediaService';
@@ -22,31 +22,38 @@ export class MediaServiceFactory {
             return LocalMediaService.getInstance(MediaServiceFactory.app);
         }
 
+        const isServiceConfigured = (): boolean => {
+            switch (settings.service) {
+                case 'cloudinary':
+                    return !!(settings.cloudinary?.cloudName && settings.cloudinary?.apiKey && 
+                        (settings.cloudinary?.apiSecret || settings.cloudinary?.uploadPreset));
+                case 'cloudflare':
+                    return !!(settings.cloudflare?.accountId && settings.cloudflare?.imagesToken);
+                case 'bunny':
+                    return !!(settings.bunny?.storageZones?.length && 
+                        settings.bunny.storageZones.every(zone => zone.accessKey && zone.name));
+                default:
+                    return false;
+            }
+        };
+
+        if (!isServiceConfigured()) {
+            if (settings.service in SupportedService) {
+                console.warn(`⚠️ Configuration ${settings.service} incomplète, utilisation du service local`);
+            } else {
+                console.warn(`⚠️ Service non reconnu (${settings.service}), utilisation du service local`);
+            }
+            return LocalMediaService.getInstance(MediaServiceFactory.app);
+        }
+
         switch (settings.service) {
             case 'cloudinary':
-                if (!settings.cloudinary?.cloudName || !settings.cloudinary?.apiKey || 
-                    (!settings.cloudinary?.apiSecret && !settings.cloudinary?.uploadPreset)) {
-                    console.warn('⚠️ Configuration Cloudinary incomplète, utilisation du service local');
-                    return LocalMediaService.getInstance(MediaServiceFactory.app);
-                }
                 return CloudinaryService.getInstance();
-
             case 'cloudflare':
-                if (!settings.cloudflare?.accountId || !settings.cloudflare?.imagesToken) {
-                    console.warn('⚠️ Configuration Cloudflare incomplète, utilisation du service local');
-                    return LocalMediaService.getInstance(MediaServiceFactory.app);
-                }
                 return CloudflareMediaService.getInstance();
-            
             case 'bunny':
-                if (!settings.bunny?.storageZones?.length || !settings.bunny.storageZones.every(zone => zone.accessKey && zone.name)) {
-                    console.warn('⚠️ Configuration Bunny incomplète, utilisation du service local');
-                    return LocalMediaService.getInstance(MediaServiceFactory.app);
-                }
                 return BunnyService.getInstance();
-            
             default:
-                console.warn(`⚠️ Service inconnu: ${settings.service}, utilisation du service local`);
                 return LocalMediaService.getInstance(MediaServiceFactory.app);
         }
     }

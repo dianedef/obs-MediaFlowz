@@ -197,7 +197,7 @@ export interface IPluginSettings {
  * Structure minimale des paramètres initiaux
  */
 export const DEFAULT_SETTINGS: IPluginSettings = {
-    service: 'cloudinary',
+    service: 'local',
     currentMode: 'tab',
     cloudinary: {
         cloudName: '',
