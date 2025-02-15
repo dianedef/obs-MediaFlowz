@@ -214,64 +214,113 @@ class ImageWidget extends WidgetType {
         infoButtonsGroup.appendChild(document.createTextNode(' • '));
         infoButtonsGroup.appendChild(fileSizeInfo);
 
-        // Créer un conteneur pour les boutons restants
-        const buttonGroup = document.createElement('div');
-        buttonGroup.className = 'mediaflowz-button-group';
-        buttonGroup.style.marginLeft = 'auto'; // Pour pousser les boutons à droite
+        // Créer un conteneur pour les boutons d'action rapide
+        const quickActionsGroup = document.createElement('div');
+        quickActionsGroup.className = 'mediaflowz-quick-actions';
+        quickActionsGroup.style.marginLeft = 'auto'; // Pour pousser les boutons à droite
+        quickActionsGroup.style.display = 'flex';
+        quickActionsGroup.style.gap = '8px'; // Ajouter un gap entre les boutons
 
-        // Boutons restants
-        const buttons = [
+        // Boutons d'action rapide
+        const quickActions = [
             { 
-                text: `Envoyer vers ${this.getServiceDisplayName()}`, 
-                onClick: () => {
-                    this.showInfoBar('Veuillez configurer un service cloud dans les settings Obsidian', 'error');
-                }
-            },
-            {
-                text: 'Compresser',
-                onClick: () => {
-                    this.compressImage();
-                }
-            },
-            {
-                text: 'Télécharger',
+                text: 'Copier', 
                 onClick: async () => {
-                    if (this.handler.getType() !== 'local') {
+                    await navigator.clipboard.writeText(this.url);
+                    this.showInfoBar('Lien copié dans le presse-papier', 'info', 2000);
+                },
+                condition: () => true
+            },
+            { 
+                text: 'Ouvrir', 
+                onClick: () => {
+                    if (this.handler.getType() === 'local') {
                         try {
-                            const response = await fetch(this.url);
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = this.url.split('/').pop() || 'image';
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            window.URL.revokeObjectURL(url);
-                            this.showInfoBar('Image téléchargée avec succès', 'info', 2000);
+                            let fileName = this.url;
+                            if (this.url.startsWith('app://')) {
+                                const url = new URL(this.url);
+                                const fullPath = decodeURIComponent(url.pathname);
+                                const parts = fullPath.split('/');
+                                fileName = parts[parts.length - 1].split('?')[0];
+                            }
+
+                            const file = this.plugin.app.vault.getAbstractFileByPath(fileName);
+                            if (!file) {
+                                this.showInfoBar('Image introuvable dans le vault', 'error');
+                                return;
+                            }
+
+                            this.plugin.app.workspace.openLinkText(
+                                fileName,
+                                '',
+                                true
+                            );
+                            this.showInfoBar('Image ouverte dans Obsidian', 'info', 2000);
                         } catch (error) {
-                            console.error('Erreur lors du téléchargement:', error);
-                            this.showInfoBar('Erreur lors du téléchargement de l\'image', 'error');
+                            console.error('Erreur lors de l\'ouverture:', error);
+                            this.showInfoBar('Erreur lors de l\'ouverture de l\'image', 'error');
                         }
                     } else {
-                        this.showInfoBar('L\'image est déjà en local', 'info', 2000);
+                        window.open(this.url, '_blank');
+                        this.showInfoBar('Image ouverte dans un nouvel onglet', 'info', 2000);
                     }
-                }
+                },
+                condition: () => true
+            },
+            { 
+                text: 'Voir dans l\'explorateur', 
+                onClick: () => {
+                    try {
+                        let fileName = this.url;
+                        if (this.url.startsWith('app://')) {
+                            const url = new URL(this.url);
+                            const fullPath = decodeURIComponent(url.pathname);
+                            const parts = fullPath.split('Dev - Plugin Obsidian/');
+                            fileName = parts[parts.length - 1].split('?')[0];
+                        }
+
+                        const activeFile = this.plugin.app.workspace.getActiveFile();
+                        const sourcePath = activeFile ? activeFile.path : '';
+                        const file = ImagePathService.getInstance(this.plugin.app).getImageFile(fileName, sourcePath);
+
+                        if (!file) {
+                            this.showInfoBar('Image introuvable dans le vault', 'error');
+                            return;
+                        }
+
+                        // @ts-ignore
+                        this.plugin.app.vault.adapter.exists(file.path).then(exists => {
+                            if (exists) {
+                                // @ts-ignore
+                                this.plugin.app.showInFolder(file.path);
+                                this.showInfoBar('Fichier localisé dans l\'explorateur', 'info', 2000);
+                            } else {
+                                this.showInfoBar('Fichier introuvable', 'error');
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Erreur lors de l\'ouverture du dossier:', error);
+                        this.showInfoBar('Erreur lors de l\'ouverture du dossier', 'error');
+                    }
+                },
+                condition: () => this.handler.getType() === 'local'
             }
         ];
 
-        buttons.forEach(({ text, onClick }) => {
-            buttonGroup.appendChild(this.createButton(text, onClick));
+        // Ne créer que les boutons qui satisfont leur condition
+        quickActions.filter(button => button.condition()).forEach(({ text, onClick }) => {
+            quickActionsGroup.appendChild(this.createButton(text, onClick));
         });
 
-        infoButtonsGroup.appendChild(buttonGroup);
+        // Ajouter les boutons d'action rapide à la barre d'info
+        infoButtonsGroup.appendChild(quickActionsGroup);
         container.appendChild(infoButtonsGroup);
 
         // Prévisualisation de l'image
         container.appendChild(preview);
         
-        // Boutons principaux
-        container.appendChild(this.createButtons());
+        // Contrôles principaux (slider et boutons d'action)
+        container.appendChild(this.createControls());
 
         return container;
     }
@@ -345,220 +394,9 @@ class ImageWidget extends WidgetType {
         return wrapper;
     }
 
-    private loadSavedSize(): string {
-        const originalUrl = this.mediaInfo.originalUrl;
-
-        // Pour les images externes
-        if (originalUrl.startsWith('http')) {
-            // Chercher dans le contenu de l'éditeur
-            // @ts-ignore
-            const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-            if (view?.editor) {
-                const content = view.editor.getValue();
-                const escapedUrl = this.escapeRegExp(originalUrl.split('|')[0]);
-                
-                // Chercher le pattern [texte|taille](url)
-                const externalPattern = new RegExp(`\\[([^\\]]*?)(?:\\|(\\d+))?\\]\\(${escapedUrl}\\)`);
-                const match = content.match(externalPattern);
-                
-                if (match) {
-                    const width = match[2] ? parseInt(match[2]) : null;
-                    if (width !== null) {
-                        // Convertir les pixels en position de slider
-                        for (const [position, pixels] of Object.entries(this.sizePixels)) {
-                            if (width <= pixels) {
-                                return position;
-                            }
-                        }
-                        return '5';
-                    }
-                }
-            }
-        } else {
-            // Pour les images locales, chercher dans le contenu de l'éditeur
-            // @ts-ignore
-            const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-            if (view?.editor) {
-                const content = view.editor.getValue();
-                const escapedUrl = this.escapeRegExp(originalUrl.split('|')[0]);
-                const wikiPattern = new RegExp(`\\[\\[${escapedUrl}\\|(\\d+)\\]\\]`);
-                const wikiMatch = content.match(wikiPattern);
-                
-                if (wikiMatch) {
-                    const width = parseInt(wikiMatch[1]);
-                    
-                    // Convertir les pixels en position de slider
-                    for (const [position, pixels] of Object.entries(this.sizePixels)) {
-                        if (width <= pixels) {
-                            return position;
-                        }
-                    }
-                    return '5';
-                }
-            }
-        }
-        
-        // Si pas de taille trouvée, utiliser la valeur par défaut des settings
-        const defaultSizeMap: Record<string, string> = {
-            'extra-small': '1',
-            'small': '2',
-            'medium': '3',
-            'large': '4',
-            'extra-large': '5'
-        };
-        
-        // @ts-ignore
-        const defaultPosition = defaultSizeMap[this.plugin.settings.defaultImageWidth] || '3';
-        return defaultPosition;
-    }
-
-    private escapeRegExp(string: string): string {
-        // Échapper tous les caractères spéciaux de regex
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            // Échapper les caractères spéciaux d'URL
-            .replace(/[%?=&]/g, '\\$&');
-    }
-
-    private updateLinkInEditor(oldLink: string, newLink: string) {
-        // @ts-ignore
-        const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view?.editor) return;
-
-        const isExternal = this.handler.getType() !== 'local';
-        const width = newLink.split('|')[1]; // Extraire la nouvelle taille
-        
-        // Sauvegarder la position du viewport et l'état actuel
-        const scrollInfo = view.editor.getScrollInfo();
-        const content = view.editor.getValue();
-        
-        const imagePathService = ImagePathService.getInstance(this.plugin.app);
-        
-        // Préparer la mise à jour en une seule fois
-        if (isExternal) {
-            const baseUrl = imagePathService.cleanPath(this.url);
-            const escapedUrl = this.escapeRegExp(baseUrl);
-            // Utiliser une regex plus permissive pour les URLs
-            const externalPattern = `\\[([^\\]]*?)(?:\\|\\d+)?\\]\\(${escapedUrl}(?:\\?[^)]*)?\\)`;
-            const externalRegex = new RegExp(externalPattern, 'g');
-            
-            console.log('🔍 Recherche avec pattern:', externalPattern);
-            
-            // Trouver toutes les occurrences dans le document
-            let match;
-            let lastMatch = null;
-            while ((match = externalRegex.exec(content)) !== null) {
-                console.log('✅ Match trouvé:', match[0]);
-                lastMatch = match;
-            }
-            
-            if (lastMatch) {
-                console.log('📝 Mise à jour du lien:', {
-                    original: lastMatch[0],
-                    baseUrl,
-                    width
-                });
-
-                const start = view.editor.posToOffset({ 
-                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
-                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
-                });
-                const end = start + lastMatch[0].length;
-                const altText = lastMatch[1] || '';
-                const replacement = `[${altText}|${width}](${baseUrl})`;
-                
-                // Première frame : faire les modifications
-                requestAnimationFrame(() => {
-                    // Mettre à jour le lien et l'image en même temps
-                    if (this.imageElement) {
-                        this.imageElement.style.width = `${width}px`;
-                        this.imageElement.style.height = 'auto';
-                    }
-                    
-                    view.editor.replaceRange(replacement, 
-                        view.editor.offsetToPos(start),
-                        view.editor.offsetToPos(end)
-                    );
-
-                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
-                    requestAnimationFrame(() => {
-                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
-                    });
-
-                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
-                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
-                        newSize: parseInt(width),
-                        markdown: replacement
-                    });
-                });
-            } else {
-                console.warn('⚠️ Aucune correspondance trouvée pour:', baseUrl);
-            }
-        } else {
-            const basePath = imagePathService.cleanPath(oldLink);
-            const escapedPath = this.escapeRegExp(basePath);
-            const wikiPattern = `\\[\\[${escapedPath}(?:\\|\\d+)?\\]\\]`;
-            const wikiRegex = new RegExp(wikiPattern, 'g');
-            
-            // Trouver toutes les occurrences dans le document
-            let match;
-            let lastMatch = null;
-            while ((match = wikiRegex.exec(content)) !== null) {
-                lastMatch = match;
-            }
-            
-            if (lastMatch) {
-                const start = view.editor.posToOffset({ 
-                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
-                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
-                });
-                const end = start + lastMatch[0].length;
-                const replacement = `[[${basePath}|${width}]]`;
-                
-                // Première frame : faire les modifications
-                requestAnimationFrame(() => {
-                    // Mettre à jour le lien et l'image en même temps
-                    if (this.imageElement) {
-                        this.imageElement.style.width = `${width}px`;
-                        this.imageElement.style.height = 'auto';
-                    }
-                    
-                    view.editor.replaceRange(replacement, 
-                        view.editor.offsetToPos(start),
-                        view.editor.offsetToPos(end)
-                    );
-
-                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
-                    requestAnimationFrame(() => {
-                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
-                    });
-
-                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
-                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
-                        newSize: parseInt(width),
-                        markdown: replacement
-                    });
-                });
-            }
-        }
-    }
-
-    private updateImageUrl(oldLink: string, width: number): string {
-        const imagePathService = ImagePathService.getInstance(this.plugin.app);
-        
-        // Pour les images externes
-        if (this.handler.getType() !== 'local') {
-            const baseUrl = imagePathService.cleanPath(this.url);
-            return `${baseUrl}|${width}`;
-        }
-        
-        // Pour les images locales
-        const basePath = imagePathService.cleanPath(oldLink);
-        return `${basePath}|${width}`;
-    }
-
-    private createButtons(): HTMLElement {
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'mediaflowz-buttons-container';
+    private createControls(): HTMLElement {
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'mediaflowz-controls-container';
 
         // Créer un conteneur flex pour organiser le slider et les boutons
         const flexContainer = document.createElement('div');
@@ -661,55 +499,39 @@ class ImageWidget extends WidgetType {
 
         sliderContainer.appendChild(slider);
 
-        // Créer un conteneur pour les boutons uniquement
-        const buttonGroup = document.createElement('div');
-        buttonGroup.className = 'mediaflowz-button-group';
+        // Créer un conteneur pour les boutons d'action
+        const actionButtonsGroup = document.createElement('div');
+        actionButtonsGroup.className = 'mediaflowz-action-buttons';
+        actionButtonsGroup.style.display = 'flex';
+        actionButtonsGroup.style.gap = '8px'; // Ajouter un gap entre les boutons
 
-        // Boutons existants
-        const buttons = [
+        // Boutons d'action
+        const actionButtons = [
             { 
-                text: 'Copier', 
-                onClick: async () => {
-                    await navigator.clipboard.writeText(this.url);
-                    this.showInfoBar('Lien copié dans le presse-papier', 'info', 2000);
+                text: `Envoyer vers ${this.getServiceDisplayName()}`, 
+                onClick: () => {
+                    this.showInfoBar('Veuillez configurer un service cloud dans les settings Obsidian', 'error');
+                },
+                condition: () => {
+                    const settings = SettingsService.getInstance().getSettings();
+                    return this.handler.getType() === 'local' && settings.features.autoUpload;
                 }
             },
-            { 
-                text: 'Ouvrir', 
+            {
+                text: 'Compresser',
                 onClick: () => {
-                    if (this.handler.getType() === 'local') {
-                        try {
-                            // Extraire le nom du fichier de l'URL de la même manière que pour la suppression
-                            let fileName = this.url;
-                            if (this.url.startsWith('app://')) {
-                                const url = new URL(this.url);
-                                const fullPath = decodeURIComponent(url.pathname);
-                                const parts = fullPath.split('/');
-                                fileName = parts[parts.length - 1].split('?')[0];
-                            }
-
-                            const file = this.plugin.app.vault.getAbstractFileByPath(fileName);
-                            if (!file) {
-                                this.showInfoBar('Image introuvable dans le vault', 'error');
-                                return;
-                            }
-
-                            // Ouvrir l'image dans un nouvel onglet d'Obsidian
-                            this.plugin.app.workspace.openLinkText(
-                                fileName,
-                                '',
-                                true
-                            );
-                            this.showInfoBar('Image ouverte dans Obsidian', 'info', 2000);
-                        } catch (error) {
-                            console.error('Erreur lors de l\'ouverture:', error);
-                            this.showInfoBar('Erreur lors de l\'ouverture de l\'image', 'error');
-                        }
-                    } else {
-                        // Pour les images externes, ouvrir dans un nouvel onglet du navigateur
-                        window.open(this.url, '_blank');
-                        this.showInfoBar('Image ouverte dans un nouvel onglet', 'info', 2000);
-                    }
+                    this.compressImage();
+                },
+                condition: () => true
+            },
+            {
+                text: 'Télécharger',
+                onClick: async () => {
+                    await this.downloadImage();
+                },
+                condition: () => {
+                    const settings = SettingsService.getInstance().getSettings();
+                    return this.handler.getType() !== 'local' && settings.features.autoUpload;
                 }
             },
             { 
@@ -722,50 +544,8 @@ class ImageWidget extends WidgetType {
                         this.showInfoBar('Erreur lors du déplacement de l\'image', 'error');
                         console.error('Erreur lors du déplacement:', error);
                     }
-                }
-            },
-            { 
-                text: 'Voir dans l\'explorateur', 
-                onClick: () => {
-                    if (this.handler.getType() === 'local') {
-                        try {
-                            // Extraire le nom du fichier de l'URL comme pour la suppression
-                            let fileName = this.url;
-                            if (this.url.startsWith('app://')) {
-                                const url = new URL(this.url);
-                                const fullPath = decodeURIComponent(url.pathname);
-                                const parts = fullPath.split('Dev - Plugin Obsidian/');
-                                fileName = parts[parts.length - 1].split('?')[0];
-                            }
-
-                            const activeFile = this.plugin.app.workspace.getActiveFile();
-                            const sourcePath = activeFile ? activeFile.path : '';
-                            const file = ImagePathService.getInstance(this.plugin.app).getImageFile(fileName, sourcePath);
-
-                            if (!file) {
-                                this.showInfoBar('Image introuvable dans le vault', 'error');
-                                return;
-                            }
-
-                            // Ouvrir l'explorateur et sélectionner le fichier
-                            // @ts-ignore
-                            this.plugin.app.vault.adapter.exists(file.path).then(exists => {
-                                if (exists) {
-                                    // @ts-ignore - La méthode existe dans Obsidian mais n'est pas typée
-                                    this.plugin.app.showInFolder(file.path);
-                                    this.showInfoBar('Fichier localisé dans l\'explorateur', 'info', 2000);
-                                } else {
-                                    this.showInfoBar('Fichier introuvable', 'error');
-                                }
-                            });
-                        } catch (error) {
-                            console.error('Erreur lors de l\'ouverture du dossier:', error);
-                            this.showInfoBar('Erreur lors de l\'ouverture du dossier', 'error');
-                        }
-                    } else {
-                        this.showInfoBar('Non disponible pour les images externes', 'error');
-                    }
-                }
+                },
+                condition: () => this.handler.getType() === 'local'
             },
             { 
                 text: 'Supprimer', 
@@ -773,25 +553,20 @@ class ImageWidget extends WidgetType {
                     let fileDeleted = false;
                     let linkRemoved = false;
 
-                    // 1. Essayer de supprimer le fichier physique
                     try {
                         await this.handler.delete();
                         fileDeleted = true;
                     } catch (error) {
                         console.warn('⚠️ Erreur lors de la suppression du fichier:', error);
-                        // Si l'erreur indique que le fichier n'existe pas, on considère que c'est ok
                         if (error instanceof Error && error.message.includes('n\'a pas été trouvé')) {
                             fileDeleted = true;
                         }
-                        // On continue même si le fichier n'a pas pu être supprimé
                     }
 
-                    // 2. Supprimer la référence dans le document (toujours tenter)
                     const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
                     if (view?.editor) {
                         const content = view.editor.getValue();
                         
-                        // Extraire le nom du fichier de l'URL
                         let fileName = this.url;
                         if (this.url.startsWith('app://')) {
                             const url = new URL(this.url);
@@ -800,13 +575,8 @@ class ImageWidget extends WidgetType {
                             fileName = parts[parts.length - 1].split('?')[0];
                         }
 
-                        // Obtenir les patterns pour cette image via FileNameService
                         const patterns = FileNameService.getImagePatterns(fileName);
-                        console.log('🔍 Patterns de suppression:', patterns);
-                        console.log('📄 URL à supprimer:', fileName);
-                        console.log('📝 Contenu avant:', content);
                         
-                        // Chercher la correspondance la plus proche de la position du widget
                         let bestMatch: { index: number, length: number } | null = null;
                         let minDistance = Infinity;
 
@@ -826,52 +596,46 @@ class ImageWidget extends WidgetType {
                         }
 
                         if (bestMatch) {
-                            console.log('✅ Match le plus proche trouvé à la position:', bestMatch.index);
                             const before = content.substring(0, bestMatch.index);
                             const after = content.substring(bestMatch.index + bestMatch.length);
                             view.editor.setValue(before + after);
                             linkRemoved = true;
                         }
-                        
-                        console.log('📝 Contenu après:', view.editor.getValue());
                     }
 
-                    // 3. Afficher le message approprié
                     if (linkRemoved) {
                         if (!fileDeleted) {
-                            // Si seulement le lien a été supprimé
                             new Notice('Référence de l\'image supprimée du document');
                         } else {
-                            // Si tout a été supprimé ou si le fichier n'existait pas
                             if (this.handler.getType() === 'local') {
                                 new Notice('Image supprimée du stockage local');
                             } else {
                                 new Notice('Image externe supprimée du document');
                             }
                         }
-                        // Confirmer la suppression du lien
                         new Notice('Lien supprimé du document', 2000);
                     } else {
-                        // Si rien n'a pu être supprimé
                         const errorMessage = 'Impossible de supprimer la référence de l\'image du document';
                         this.showInfoBar(errorMessage, 'error');
                     }
-                }
+                },
+                condition: () => true
             }
         ];
 
-        buttons.forEach(({ text, onClick }) => {
-            buttonGroup.appendChild(this.createButton(text, onClick));
+        // Ne créer que les boutons qui satisfont leur condition
+        actionButtons.filter(button => button.condition()).forEach(({ text, onClick }) => {
+            actionButtonsGroup.appendChild(this.createButton(text, onClick));
         });
 
         // Ajouter le slider et les boutons au conteneur flex
         flexContainer.appendChild(sliderContainer);
-        flexContainer.appendChild(buttonGroup);
+        flexContainer.appendChild(actionButtonsGroup);
 
         // Ajouter le conteneur flex au conteneur principal
-        buttonsContainer.appendChild(flexContainer);
+        controlsContainer.appendChild(flexContainer);
 
-        return buttonsContainer;
+        return controlsContainer;
     }
 
     private createButton(text: string, onClick: () => void): HTMLButtonElement {
@@ -1085,7 +849,8 @@ class ImageWidget extends WidgetType {
                 const currentFolder = activeFile ? activeFile.parent : null;
                 const targetPath = currentFolder ? `${currentFolder.path}/${compressedName}` : compressedName;
 
-                await this.plugin.app.vault.createBinary(targetPath, arrayBuffer);
+                const normalizedPath = targetPath.replace(/\\/g, '/');
+                await this.plugin.app.vault.adapter.writeBinary(normalizedPath, arrayBuffer);
                 
                 // Afficher les statistiques de compression
                 const originalSize = (imageBlob.size / 1024).toFixed(1);
@@ -1120,7 +885,8 @@ class ImageWidget extends WidgetType {
                 const currentFolder = activeFile ? activeFile.parent : null;
                 const targetPath = currentFolder ? `${currentFolder.path}/${compressedName}` : compressedName;
 
-                await this.plugin.app.vault.createBinary(targetPath, arrayBuffer);
+                const normalizedPath = targetPath.replace(/\\/g, '/');
+                await this.plugin.app.vault.adapter.writeBinary(normalizedPath, arrayBuffer);
                 
                 // Afficher les statistiques de compression
                 const originalSize = (imageBlob.size / 1024).toFixed(1);
@@ -1170,6 +936,338 @@ class ImageWidget extends WidgetType {
                 return 'Bunny.net';
             default:
                 return 'Cloud';
+        }
+    }
+
+    private updateLinkInEditor(oldLink: string, newLink: string) {
+        // @ts-ignore
+        const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view?.editor) return;
+
+        const isExternal = this.handler.getType() !== 'local';
+        const width = newLink.split('|')[1]; // Extraire la nouvelle taille
+        
+        // Sauvegarder la position du viewport et l'état actuel
+        const scrollInfo = view.editor.getScrollInfo();
+        const content = view.editor.getValue();
+        
+        const imagePathService = ImagePathService.getInstance(this.plugin.app);
+        
+        // Préparer la mise à jour en une seule fois
+        if (isExternal) {
+            const baseUrl = imagePathService.cleanPath(this.url);
+            const escapedUrl = this.escapeRegExp(baseUrl);
+            // Utiliser une regex plus permissive pour les URLs
+            const externalPattern = `\\[([^\\]]*?)(?:\\|\\d+)?\\]\\(${escapedUrl}(?:\\?[^)]*)?\\)`;
+            const externalRegex = new RegExp(externalPattern, 'g');
+            
+            console.log('🔍 Recherche avec pattern:', externalPattern);
+            
+            // Trouver toutes les occurrences dans le document
+            let match;
+            let lastMatch = null;
+            while ((match = externalRegex.exec(content)) !== null) {
+                console.log('✅ Match trouvé:', match[0]);
+                lastMatch = match;
+            }
+            
+            if (lastMatch) {
+                console.log('📝 Mise à jour du lien:', {
+                    original: lastMatch[0],
+                    baseUrl,
+                    width
+                });
+
+                const start = view.editor.posToOffset({ 
+                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
+                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
+                });
+                const end = start + lastMatch[0].length;
+                const altText = lastMatch[1] || '';
+                const replacement = `[${altText}|${width}](${baseUrl})`;
+                
+                // Première frame : faire les modifications
+                requestAnimationFrame(() => {
+                    // Mettre à jour le lien et l'image en même temps
+                    if (this.imageElement) {
+                        this.imageElement.style.width = `${width}px`;
+                        this.imageElement.style.height = 'auto';
+                    }
+                    
+                    view.editor.replaceRange(replacement, 
+                        view.editor.offsetToPos(start),
+                        view.editor.offsetToPos(end)
+                    );
+
+                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
+                    requestAnimationFrame(() => {
+                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
+                    });
+
+                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
+                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
+                        newSize: parseInt(width),
+                        markdown: replacement
+                    });
+                });
+            } else {
+                console.warn('⚠️ Aucune correspondance trouvée pour:', baseUrl);
+            }
+        } else {
+            const basePath = imagePathService.cleanPath(oldLink);
+            const escapedPath = this.escapeRegExp(basePath);
+            const wikiPattern = `\\[\\[${escapedPath}(?:\\|\\d+)?\\]\\]`;
+            const wikiRegex = new RegExp(wikiPattern, 'g');
+            
+            // Trouver toutes les occurrences dans le document
+            let match;
+            let lastMatch = null;
+            while ((match = wikiRegex.exec(content)) !== null) {
+                lastMatch = match;
+            }
+            
+            if (lastMatch) {
+                const start = view.editor.posToOffset({ 
+                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
+                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
+                });
+                const end = start + lastMatch[0].length;
+                const replacement = `[[${basePath}|${width}]]`;
+                
+                // Première frame : faire les modifications
+                requestAnimationFrame(() => {
+                    // Mettre à jour le lien et l'image en même temps
+                    if (this.imageElement) {
+                        this.imageElement.style.width = `${width}px`;
+                        this.imageElement.style.height = 'auto';
+                    }
+                    
+                    view.editor.replaceRange(replacement, 
+                        view.editor.offsetToPos(start),
+                        view.editor.offsetToPos(end)
+                    );
+
+                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
+                    requestAnimationFrame(() => {
+                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
+                    });
+
+                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
+                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
+                        newSize: parseInt(width),
+                        markdown: replacement
+                    });
+                });
+            }
+        }
+    }
+
+    private updateImageUrl(oldLink: string, width: number): string {
+        const imagePathService = ImagePathService.getInstance(this.plugin.app);
+        
+        // Pour les images externes
+        if (this.handler.getType() !== 'local') {
+            const baseUrl = imagePathService.cleanPath(this.url);
+            return `${baseUrl}|${width}`;
+        }
+        
+        // Pour les images locales
+        const basePath = imagePathService.cleanPath(oldLink);
+        return `${basePath}|${width}`;
+    }
+
+    private loadSavedSize(): string {
+        const originalUrl = this.mediaInfo.originalUrl;
+
+        // Pour les images externes
+        if (originalUrl.startsWith('http')) {
+            // Chercher dans le contenu de l'éditeur
+            // @ts-ignore
+            const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+            if (view?.editor) {
+                const content = view.editor.getValue();
+                const escapedUrl = this.escapeRegExp(originalUrl.split('|')[0]);
+                
+                // Chercher le pattern [texte|taille](url)
+                const externalPattern = new RegExp(`\\[([^\\]]*?)(?:\\|(\\d+))?\\]\\(${escapedUrl}\\)`);
+                const match = content.match(externalPattern);
+                
+                if (match) {
+                    const width = match[2] ? parseInt(match[2]) : null;
+                    if (width !== null) {
+                        // Convertir les pixels en position de slider
+                        for (const [position, pixels] of Object.entries(this.sizePixels)) {
+                            if (width <= pixels) {
+                                return position;
+                            }
+                        }
+                        return '5';
+                    }
+                }
+            }
+        } else {
+            // Pour les images locales, chercher dans le contenu de l'éditeur
+            // @ts-ignore
+            const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+            if (view?.editor) {
+                const content = view.editor.getValue();
+                const escapedUrl = this.escapeRegExp(originalUrl.split('|')[0]);
+                const wikiPattern = new RegExp(`\\[\\[${escapedUrl}\\|(\\d+)\\]\\]`);
+                const wikiMatch = content.match(wikiPattern);
+                
+                if (wikiMatch) {
+                    const width = parseInt(wikiMatch[1]);
+                    
+                    // Convertir les pixels en position de slider
+                    for (const [position, pixels] of Object.entries(this.sizePixels)) {
+                        if (width <= pixels) {
+                            return position;
+                        }
+                    }
+                    return '5';
+                }
+            }
+        }
+        
+        // Si pas de taille trouvée, utiliser la valeur par défaut des settings
+        const defaultSizeMap: Record<string, string> = {
+            'extra-small': '1',
+            'small': '2',
+            'medium': '3',
+            'large': '4',
+            'extra-large': '5'
+        };
+        
+        // @ts-ignore
+        const defaultPosition = defaultSizeMap[this.plugin.settings.defaultImageWidth] || '3';
+        return defaultPosition;
+    }
+
+    private escapeRegExp(string: string): string {
+        // Échapper tous les caractères spéciaux de regex
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            // Échapper les caractères spéciaux d'URL
+            .replace(/[%?=&]/g, '\\$&');
+    }
+
+    private async downloadImage() {
+        if (this.handler.getType() === 'local') {
+            this.showInfoBar('L\'image est déjà en local', 'info', 2000);
+            return;
+        }
+
+        try {
+            const settings = SettingsService.getInstance().getSettings();
+            const activeFile = this.plugin.app.workspace.getActiveFile();
+            
+            // Déterminer le dossier de destination
+            let targetFolder = '';
+            if (settings.features.autoUpload) {
+                // Si autoUpload est activé, utiliser le dossier configuré
+                targetFolder = settings.features.uploadFolder;
+            } else {
+                // Sinon, utiliser le dossier de la note active ou le dossier par défaut d'Obsidian
+                targetFolder = activeFile?.parent?.path || 'assets';
+            }
+
+            // S'assurer que le dossier existe
+            if (!await this.plugin.app.vault.adapter.exists(targetFolder)) {
+                await this.plugin.app.vault.adapter.mkdir(targetFolder);
+            }
+
+            // Télécharger l'image
+            const response = await fetch(this.url);
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+
+            // Générer un nom de fichier unique basé sur le nom original
+            const originalName = this.url.split('/').pop()?.split('?')[0] || 'image';
+            const extension = originalName.split('.').pop() || 'png';
+            const baseName = originalName.substring(0, originalName.lastIndexOf('.'));
+            const timestamp = Date.now();
+            const fileName = `${baseName}-${timestamp}.${extension}`;
+            const filePath = `${targetFolder}/${fileName}`;
+
+            // Sauvegarder le fichier dans le vault
+            const normalizedPath = filePath.replace(/\\/g, '/');
+            
+            // @ts-ignore - Le typage d'Obsidian pour l'adapter n'est pas correct
+            await this.plugin.app.vault.adapter.writeBinary(normalizedPath, arrayBuffer);
+            
+            // Forcer le rafraîchissement du vault pour que le fichier soit reconnu
+            await this.plugin.app.vault.adapter.exists(normalizedPath);
+            
+            // Attendre un peu que le fichier soit indexé
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const savedFile = this.plugin.app.vault.getAbstractFileByPath(normalizedPath);
+            
+            if (!savedFile || !(savedFile instanceof TFile)) {
+                throw new Error('Échec de la création du fichier');
+            }
+
+            // Si autoUpload est activé, envoyer vers le cloud
+            if (settings.features.autoUpload) {
+                try {
+                    const service = MediaServiceFactory.getService(settings, false);
+                    const cloudUrl = await service.upload(savedFile.path);
+
+                    // Mettre à jour le lien dans l'éditeur
+                    const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+                    if (view?.editor) {
+                        const content = view.editor.getValue();
+                        const cursor = view.editor.getCursor();
+
+                        // Remplacer le lien externe par le lien cloud
+                        const newContent = content.replace(
+                            new RegExp(`\\[([^\\]]*)\\]\\(${this.escapeRegExp(this.url)}\\)`),
+                            `[${this.altText}](${cloudUrl})`
+                        );
+
+                        view.editor.setValue(newContent);
+                        view.editor.setCursor(cursor);
+
+                        // Si on ne garde pas de copie locale, supprimer le fichier
+                        if (!settings.features.keepLocalCopy && savedFile instanceof TFile) {
+                            await this.plugin.app.vault.delete(savedFile);
+                        }
+
+                        this.showInfoBar('Image téléchargée et envoyée vers le cloud', 'info', 2000);
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de l\'upload vers le cloud:', error);
+                    this.showInfoBar('L\'image a été téléchargée localement mais n\'a pas pu être envoyée vers le cloud', 'error');
+                }
+            } else {
+                // Mettre à jour le lien dans l'éditeur avec le chemin local
+                const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+                if (view?.editor) {
+                    const content = view.editor.getValue();
+                    const cursor = view.editor.getCursor();
+
+                    // Remplacer le lien externe par le lien local
+                    const newContent = content.replace(
+                        new RegExp(`\\[([^\\]]*)\\]\\(${this.escapeRegExp(this.url)}\\)`),
+                        `[[${savedFile.path}]]`
+                    );
+
+                    view.editor.setValue(newContent);
+                    view.editor.setCursor(cursor);
+
+                    this.showInfoBar('Image téléchargée localement', 'info', 2000);
+                }
+            }
+
+            // Émettre un événement pour informer d'autres parties du plugin
+            EventBusService.getInstance().emit(EventName.MEDIA_DOWNLOADED, {
+                url: this.url,
+                type: 'image',
+                size: arrayBuffer.byteLength
+            });
+
+        } catch (error) {
+            console.error('Erreur lors du téléchargement:', error);
+            this.showInfoBar('Erreur lors du téléchargement de l\'image', 'error');
         }
     }
 }

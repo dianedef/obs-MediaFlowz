@@ -190,6 +190,12 @@ export interface IPluginSettings {
     /** Features */
     features: {
         imageResize: boolean;
+        /** Upload automatique vers le cloud */
+        autoUpload: boolean;
+        /** Conserver une copie locale après l'upload */
+        keepLocalCopy: boolean;
+        /** Dossier de destination pour les uploads */
+        uploadFolder: string;
     };
 }
 
@@ -267,6 +273,9 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
         pullZone: ''
     },
     features: {
-        imageResize: true
+        imageResize: true,
+        autoUpload: true,
+        keepLocalCopy: true,
+        uploadFolder: 'images/cloud'
     }
 }; 

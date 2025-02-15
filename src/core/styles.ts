@@ -436,6 +436,33 @@ const ignoredFoldersStyles = `
         margin-left: 0.5rem;
         padding: 4px 8px;
     }
+            
+    /* Correction de la hiérarchie des titres dans les settings */
+    .mediaflowz-settings h2 {
+        font-size: var(--h2-size);
+        color: var(--text-normal);
+        margin-bottom: 1em;
+        margin-top: 1.5em;
+        border-bottom: 1px solid var(--background-modifier-border);
+        padding-bottom: 0.25em;
+    }
+
+    .mediaflowz-settings h3 {
+        font-size: var(--h3-size);
+        color: var(--text-normal);
+        margin-bottom: 0.75em;
+        margin-top: 1em;
+    }
+
+    /* S'assurer que h2 est toujours plus grand que h3 */
+    .mediaflowz-settings h2 {
+        font-size: 1.5em;
+    }
+
+    .mediaflowz-settings h3 {
+        font-size: 1.2em;
+    }
+
 `;
 
 let styleElement: HTMLStyleElement | null = null;

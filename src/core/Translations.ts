@@ -46,7 +46,7 @@ const fr = {
 
     // Paramètres généraux
     'settings.title': 'Paramètres MediaFlowz',
-    'settings.service': 'Service',
+    'settings.service': 'Service d\'upload pour les médias',
     'settings.service.title': 'Configuration du service',
     'settings.serviceDesc': 'Choisissez le service que vous souhaitez utiliser pour héberger vos médias.',
     'settings.selectService': 'Sélectionnez un service...',
@@ -166,6 +166,16 @@ const fr = {
     'settings.features.title': 'Fonctionnalités',
     'settings.features.imageToolbar.name': 'Barre d\'outils image',
     'settings.features.imageToolbar.desc': 'Affiche une barre d\'outils au survol des images pour accéder rapidement aux actions courantes',
+    'settings.features.autoupload.title': 'Auto-upload',
+    'settings.features.autoupload.desc': 'Télécharger automatiquement les images collées dans vos notes',
+    'settings.features.autoupload.description': 'Configuration de l\'upload automatique vers le cloud',
+    'settings.features.autoupload.defaultService': 'Service par défaut',
+    'settings.features.autoupload.defaultService.desc': 'Service cloud à utiliser par défaut pour l\'upload automatique',
+    'settings.features.autoupload.keepLocalCopy': 'Conserver une copie locale',
+    'settings.features.autoupload.keepLocalCopy.desc': 'Garder une copie des images dans le vault même après l\'upload',
+    'settings.features.autoupload.uploadFolder': 'Dossier de destination',
+    'settings.features.autoupload.uploadFolder.desc': 'Dossier où seront stockées les images uploadées',
+    'settings.features.autoupload.uploadFolder.placeholder': 'Ex: images/cloud',
 
     // Media Types
     'settings.mediaTypes.title': 'Types de médias',
@@ -189,12 +199,11 @@ const fr = {
     'settings.imageSize.altScroll.desc': 'Maintenez Alt et utilisez la molette pour redimensionner les images',
 
     // Mouse Actions
-    'settings.mouseActions.title': 'Actions de souris',
     'settings.mouseActions.desc': 'Configurez les actions déclenchées par les différents clics de souris',
-    'settings.mouseActions.middleClick': 'Clic du milieu',
+    'settings.mouseActions.middleClick': 'Clic du milieu de la souris',
     'settings.mouseActions.middleClick.desc': 'Action à effectuer lors d\'un clic avec la molette',
     'settings.mouseActions.middleClick.enable': 'Activer le clic du milieu',
-    'settings.mouseActions.rightClick': 'Clic droit',
+    'settings.mouseActions.rightClick': 'Clic droit de la souris',
     'settings.mouseActions.rightClick.desc': 'Action à effectuer lors d\'un clic droit',
     'settings.mouseActions.rightClick.enable': 'Activer le clic droit',
     'settings.mouseActions.action.none': 'Aucune action',
@@ -222,7 +231,7 @@ const fr = {
 
     // Image Optimization
     'settings.imageOptimization.title': 'Optimisation des images',
-    'settings.imageOptimization.desc': 'Configurez comment les images sont optimisées avant l\'upload',
+    'settings.imageOptimization.desc': 'Configurez comment les images sont optimisées',
     'settings.imageOptimization.mode': 'Mode d\'optimisation',
     'settings.imageOptimization.mode.desc': 'Choisissez entre une optimisation intelligente automatique ou manuelle',
     'settings.imageOptimization.mode.smart': 'Intelligent',
@@ -240,6 +249,7 @@ const fr = {
     
     'settings.imageOptimization.manual.quality': 'Qualité de compression',
     'settings.imageOptimization.manual.quality.desc': 'Niveau de qualité fixe (100 = aucune compression)',
+    'settings.imageOptimization.manual.info': 'Informations sur le mode manuel',
 
     // Paramètres Bunny.net
     'settings.bunny.title': 'Configuration Bunny.net',
@@ -252,7 +262,7 @@ const fr = {
     'settings.bunny.storageZoneNameDesc': 'Le nom de votre zone de stockage (Storage Zone Name)',
     'settings.bunny.addStorageZone': 'Ajouter une zone de stockage',
     'settings.bunny.zoneName': 'Nom de la zone',
-    'settings.bunny.zoneNameDesc': 'Le nom de votre zone de stockage (Storage Zone Name)',
+    'settings.bunny.zoneNameDesc': 'Nom de la zone de stockage Bunny',
     'settings.bunny.accessKey': 'Clé d\'accès',
     'settings.bunny.accessKeyDesc': 'La clé d\'accès FTP/API de la zone (trouvable dans FTP & API Access)',
     'settings.bunny.pullZoneUrl': 'PullZone URL',
@@ -266,6 +276,9 @@ const fr = {
     'settings.bunny.addZone': 'Ajouter',
     'settings.bunny.customCDN': 'CDN personnalisé (optionnel)',
     'settings.bunny.customCDNDesc': 'URL du CDN personnalisé pour ce dossier (ex: https://cdn.votredomaine.com)',
+    'settings.bunny.folderPath': 'Chemin du dossier',
+    'settings.bunny.cdnUrl': 'URL du CDN',
+    'settings.bunny.addCustomCDN': 'Ajouter un CDN personnalisé',
 };
 
 const en = {
@@ -277,7 +290,7 @@ const en = {
 
     // General settings
     'settings.title': 'MediaFlowz Settings',
-    'settings.service': 'Service',
+    'settings.service': 'Upload service for media',
     'settings.service.title': 'Service Configuration',
     'settings.serviceDesc': 'Choose the service you want to use to host your media.',
     'settings.selectService': 'Select a service...',
@@ -400,6 +413,16 @@ const en = {
     'settings.features.title': 'Features',
     'settings.features.imageToolbar.name': 'Image Toolbar',
     'settings.features.imageToolbar.desc': 'Displays a toolbar at the hover of images for quick access to common actions',
+    'settings.features.autoupload.title': 'Auto-upload',
+    'settings.features.autoupload.desc': 'Automatically upload images to the selected service when pasting from the clipboard',
+    'settings.features.autoupload.description': 'Configuration de l\'upload automatique vers le cloud',
+    'settings.features.autoupload.defaultService': 'Service par défaut',
+    'settings.features.autoupload.defaultService.desc': 'Service cloud à utiliser par défaut pour l\'upload automatique',
+    'settings.features.autoupload.keepLocalCopy': 'Conserver une copie locale',
+    'settings.features.autoupload.keepLocalCopy.desc': 'Garder une copie des images dans le vault même après l\'upload',
+    'settings.features.autoupload.uploadFolder': 'Dossier de destination',
+    'settings.features.autoupload.uploadFolder.desc': 'Dossier où seront stockées les images uploadées',
+    'settings.features.autoupload.uploadFolder.placeholder': 'Ex: images/cloud',
 
     // Media Types
     'settings.mediaTypes.title': 'Media Types',
@@ -423,12 +446,11 @@ const en = {
     'settings.imageSize.altScroll.desc': 'Hold Alt and use the mouse wheel to resize images',
 
     // Mouse Actions
-    'settings.mouseActions.title': 'Mouse Actions',
     'settings.mouseActions.desc': 'Configure actions triggered by different mouse clicks',
-    'settings.mouseActions.middleClick': 'Middle Click',
+    'settings.mouseActions.middleClick': 'Middle mouse click',
     'settings.mouseActions.middleClick.desc': 'Action to perform on middle click',
     'settings.mouseActions.middleClick.enable': 'Enable middle click',
-    'settings.mouseActions.rightClick': 'Right Click',
+    'settings.mouseActions.rightClick': 'Right mouse click',
     'settings.mouseActions.rightClick.desc': 'Action to perform on right click',
     'settings.mouseActions.rightClick.enable': 'Enable right click',
     'settings.mouseActions.action.none': 'No action',
@@ -456,7 +478,7 @@ const en = {
 
     // Image Optimization
     'settings.imageOptimization.title': 'Image Optimization',
-    'settings.imageOptimization.desc': 'Configure how images are optimized before upload',
+    'settings.imageOptimization.desc': 'Configure how images are optimized',
     'settings.imageOptimization.mode': 'Optimization Mode',
     'settings.imageOptimization.mode.desc': 'Choose between automatic intelligent or manual optimization',
     'settings.imageOptimization.mode.smart': 'Smart',
@@ -474,6 +496,7 @@ const en = {
     
     'settings.imageOptimization.manual.quality': 'Compression Quality',
     'settings.imageOptimization.manual.quality.desc': 'Fixed quality level (100 = no compression)',
+    'settings.imageOptimization.manual.info': 'Manual mode information',
 
     // Bunny.net settings
     'settings.bunny.title': 'Bunny.net Configuration',
@@ -484,7 +507,7 @@ const en = {
     'settings.bunny.storageZonesDesc': 'Configure different storage zones for your projects',
     'settings.bunny.addStorageZone': 'Add Storage Zone',
     'settings.bunny.storageZoneName': 'Storage Zone Name',
-    'settings.bunny.storageZoneNameDesc': 'Your storage zone name (Storage Zone Name)',
+    'settings.bunny.storageZoneNameDesc': 'Bunny storage zone name',
     'settings.bunny.accessKey': 'Access Key',
     'settings.bunny.accessKeyDesc': 'The zone\'s FTP/API access key (found in FTP & API Access)',
     'settings.bunny.pullZoneUrl': 'PullZoneURL',
@@ -498,6 +521,9 @@ const en = {
     'settings.bunny.addZone': 'Add',
     'settings.bunny.customCDN': 'Custom CDN (optional)',
     'settings.bunny.customCDNDesc': 'Custom CDN URL for this folder (e.g. https://cdn.yourdomain.com)',
+    'settings.bunny.folderPath': 'Folder path',
+    'settings.bunny.cdnUrl': 'CDN URL',
+    'settings.bunny.addCustomCDN': 'Add custom CDN',
     'settings.bunny.zoneName': 'Zone Name',
     'settings.bunny.zoneNameDesc': 'Bunny storage zone name',
 };

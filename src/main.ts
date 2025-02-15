@@ -20,11 +20,6 @@ import { ImagePathService } from './utils/ImagePathService';
 import { MediaLinkInfo, MediaLinkType } from './types/media';
 import { ImageResizer } from './utils/ImageResizer';
 
-interface EmbedCacheWithPath extends EmbedCache {
-    path?: string;
-    source?: string;
-}
-
 interface MarkdownView extends View {
     editor?: Editor;
 }

@@ -1,3 +1,5 @@
+ALPHA VERSION - I don't recommend using it in production yet!
+
 # MediaFlowz - Image and GIF Management with Cloud Uploads
 (version FR en dessous)
 
@@ -7,8 +9,6 @@ A powerful Obsidian plugin that facilitates the management of images and GIFs, a
 
 ### Smart Image Management
 - Easy import of images and GIFs via URL
-- Organize images with custom tags
-- Quick search through your image library
 - Intuitive and responsive user interface
 
 ### Cloud Uploads
@@ -24,13 +24,10 @@ A powerful Obsidian plugin that facilitates the management of images and GIFs, a
 - Bunny.net
 
 ### Advanced Content Processing
-- Automatic metadata extraction for images
 - Image compression and optimization
 - Support for various image formats (JPEG, PNG, GIF, SVG, WebP)
 - Convert images to WebP format
-- Bulk add captions
 - Use TinyPNG's image compression service
-
 
 ### Image Handling
 - Rename, move, and delete images both locally and in the cloud
@@ -230,50 +227,3 @@ Once configured, you can use this subdomain in the plugin settings:
 ```typescript
 customDomain: "images.yourdomain.com"
 ```
-
-Do you want me to help you configure this DNS record?
-
-3. Let's modify the code to use this subdomain:
-
-```:src/core/services/CloudflareMediaService.ts
-
-```
-
-4. In the plugin settings, add your subdomain:
-   ```typescript
-   customDomain: "images.yourdomain.com"
-   ```
-
-Now, instead of having URLs like:
-```
-https://imagedelivery.net/your-account-id/image-id/public
-```
-
-You will have URLs like:
-```
-https://images.yourdomain.com/your-account-id/image-id/public
-```
-
-Advantages of this approach:
-1. Simpler to set up (no need for a Worker)
-2. Automatic SSL management by Cloudflare
-3. Same performance as the original URL
-4. Better branding with your own domain
-
-Do you want me to help you configure the DNS record for your subdomain?
-
-## Security
-
-- NEVER share your API token
-- Keep it in a secure password manager
-- In case of compromise, immediately revoke the token in the Cloudflare dashboard
-- Regularly monitor usage in the Cloudflare dashboard
-
-## Support
-
-- [Cloudflare Images Documentation](https://developers.cloudflare.com/images/)
-- [Cloudflare Stream Documentation](https://developers.cloudflare.com/stream/) 
-
-## instructions
-
-   aller dans https://dash.cloudflare.com/b805cca6c486d78d68e7a4498292be56/images/plans?configure=false et s"abonner au service
