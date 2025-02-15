@@ -3,6 +3,14 @@ ALPHA VERSION - I don't recommend using it in production yet!
 # MediaFlowz - Image and GIF Management with Cloud Uploads
 (version FR en dessous)
 
+## ⚠️ Important Notice
+This plugin is currently in alpha and free to use. In future releases, it will transition to a freemium model:
+- **Community Version**: Will remain free and open-source with all features
+- **Premium Version**: Will include advanced features such as:
+  - More usage quota
+  - Priority support
+  - And more!
+
 A powerful Obsidian plugin that facilitates the management of images and GIFs, allowing seamless uploads to cloud storage with advanced features.
 
 ## ✨ Key Features
@@ -227,3 +235,17 @@ Once configured, you can use this subdomain in the plugin settings:
 ```typescript
 customDomain: "images.yourdomain.com"
 ```
+
+## 📢 Disclosures
+As per Obsidian plugin guidelines, we want to be transparent about the following:
+
+1. **Freemium Model**: Future versions will include premium features requiring payment
+2. **Network Usage**: 
+   - Cloud uploads require internet connection
+   - Supported services: Cloudinary, Cloudflare Images, TwicPics, Bunny.net
+3. **Account Requirements**:
+   - Cloud service accounts required for upload features
+   - Premium features will require a MediaFlowz account (future)
+4. **Privacy**:
+   - No telemetry data is collected
+   - Cloud uploads are processed directly with your chosen provider

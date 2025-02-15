@@ -7,6 +7,5 @@
 	"description": "Enhance the media experience in Obsidian with built-in controls and operations",
 	"author": "Diane Winflowz",
 	"isDesktopOnly": false,
-	"license": "Copyright © 2025. All rights reserved."
-
+	"license": "GPL-3.0"
 }
