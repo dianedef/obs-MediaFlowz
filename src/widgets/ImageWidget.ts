@@ -956,19 +956,41 @@ class ImageWidget extends WidgetType {
         // Préparer la mise à jour en une seule fois
         if (isExternal) {
             const baseUrl = imagePathService.cleanPath(this.url);
-            const escapedUrl = this.escapeRegExp(baseUrl);
-            // Utiliser une regex plus permissive pour les URLs
-            const externalPattern = `\\[([^\\]]*?)(?:\\|\\d+)?\\]\\(${escapedUrl}(?:\\?[^)]*)?\\)`;
-            const externalRegex = new RegExp(externalPattern, 'g');
             
-            console.log('🔍 Recherche avec pattern:', externalPattern);
+            // Créer une regex qui match le format exact sans essayer d'échapper l'URL
+            const pattern = `\\[([^\\]|]*?)(?:\\|\\d+)?\\]\\([^)]*\\)`;
+            const regex = new RegExp(pattern, 'g');
+            
+            console.log('🔍 Recherche avec pattern:', pattern);
             
             // Trouver toutes les occurrences dans le document
             let match;
             let lastMatch = null;
-            while ((match = externalRegex.exec(content)) !== null) {
-                console.log('✅ Match trouvé:', match[0]);
-                lastMatch = match;
+            let bestMatchDistance = Infinity;
+            
+            // Nettoyer l'URL de base pour la comparaison
+            const cleanBaseUrl = this.normalizeUrl(baseUrl);
+            console.log('🧹 URL de base nettoyée:', cleanBaseUrl);
+            
+            while ((match = regex.exec(content)) !== null) {
+                // Extraire l'URL du match
+                const urlMatch = match[0].match(/\]\((.*?)\)/);
+                if (urlMatch) {
+                    const matchedUrl = this.normalizeUrl(urlMatch[1]);
+                    console.log('🔍 Comparaison URLs:', {
+                        matched: matchedUrl,
+                        base: cleanBaseUrl,
+                        isEqual: matchedUrl === cleanBaseUrl
+                    });
+                    
+                    if (matchedUrl === cleanBaseUrl) {
+                        const distance = Math.abs(match.index - this.startPosition);
+                        if (distance < bestMatchDistance) {
+                            bestMatchDistance = distance;
+                            lastMatch = match;
+                        }
+                    }
+                }
             }
             
             if (lastMatch) {
@@ -983,9 +1005,19 @@ class ImageWidget extends WidgetType {
                     ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
                 });
                 const end = start + lastMatch[0].length;
-                const altText = lastMatch[1] || '';
-                const replacement = `[${altText}|${width}](${baseUrl})`;
                 
+                // Extraire l'URL complète du match original
+                const urlMatch = lastMatch[0].match(/\]\((.*?)\)/);
+                const originalUrl = urlMatch ? urlMatch[1] : baseUrl;
+                
+                const altText = lastMatch[1].split('|')[0] || ''; // Extraire le texte sans la taille
+                const replacement = `[${altText}|${width}](${originalUrl})`;
+                
+                console.log('📝 Remplacement:', {
+                    from: lastMatch[0],
+                    to: replacement
+                });
+
                 // Première frame : faire les modifications
                 requestAnimationFrame(() => {
                     // Mettre à jour le lien et l'image en même temps
@@ -1016,7 +1048,7 @@ class ImageWidget extends WidgetType {
         } else {
             const basePath = imagePathService.cleanPath(oldLink);
             const escapedPath = this.escapeRegExp(basePath);
-            const wikiPattern = `\\[\\[${escapedPath}(?:\\|\\d+)?\\]\\]`;
+            const wikiPattern = `\\[\\[${escapedPath}\\|(\\d+)\\]\\]`;
             const wikiRegex = new RegExp(wikiPattern, 'g');
             
             // Trouver toutes les occurrences dans le document
@@ -1078,6 +1110,7 @@ class ImageWidget extends WidgetType {
 
     private loadSavedSize(): string {
         const originalUrl = this.mediaInfo.originalUrl;
+        console.log('🔍 Chargement de la taille sauvegardée pour:', originalUrl);
 
         // Pour les images externes
         if (originalUrl.startsWith('http')) {
@@ -1086,15 +1119,45 @@ class ImageWidget extends WidgetType {
             const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
             if (view?.editor) {
                 const content = view.editor.getValue();
-                const escapedUrl = this.escapeRegExp(originalUrl.split('|')[0]);
+                const baseUrl = originalUrl.split('|')[0];
+                const cleanBaseUrl = this.normalizeUrl(baseUrl);
+                console.log('🧹 URL nettoyée pour la recherche:', cleanBaseUrl);
                 
                 // Chercher le pattern [texte|taille](url)
-                const externalPattern = new RegExp(`\\[([^\\]]*?)(?:\\|(\\d+))?\\]\\(${escapedUrl}\\)`);
-                const match = content.match(externalPattern);
+                const pattern = `\\[([^\\]|]*?)(?:\\|(\\d+))?\\]\\([^)]*\\)`;
+                const regex = new RegExp(pattern, 'g');
                 
-                if (match) {
-                    const width = match[2] ? parseInt(match[2]) : null;
-                    if (width !== null) {
+                let bestMatch = null;
+                let bestMatchDistance = Infinity;
+                let match;
+                
+                while ((match = regex.exec(content)) !== null) {
+                    const urlMatch = match[0].match(/\]\((.*?)\)/);
+                    if (urlMatch) {
+                        const matchedUrl = this.normalizeUrl(urlMatch[1]);
+                        console.log('🔍 Comparaison:', {
+                            matched: matchedUrl,
+                            base: cleanBaseUrl,
+                            isEqual: matchedUrl === cleanBaseUrl
+                        });
+                        
+                        if (matchedUrl === cleanBaseUrl) {
+                            const distance = Math.abs(match.index - this.startPosition);
+                            if (distance < bestMatchDistance) {
+                                bestMatchDistance = distance;
+                                bestMatch = match;
+                            }
+                        }
+                    }
+                }
+                
+                if (bestMatch) {
+                    // Extraire la taille du meilleur match
+                    const sizeMatch = bestMatch[0].match(/\|(\d+)\]/);
+                    if (sizeMatch) {
+                        const width = parseInt(sizeMatch[1]);
+                        console.log('📏 Taille trouvée:', width);
+                        
                         // Convertir les pixels en position de slider
                         for (const [position, pixels] of Object.entries(this.sizePixels)) {
                             if (width <= pixels) {
@@ -1117,6 +1180,7 @@ class ImageWidget extends WidgetType {
                 
                 if (wikiMatch) {
                     const width = parseInt(wikiMatch[1]);
+                    console.log('📏 Taille wiki trouvée:', width);
                     
                     // Convertir les pixels en position de slider
                     for (const [position, pixels] of Object.entries(this.sizePixels)) {
@@ -1129,6 +1193,8 @@ class ImageWidget extends WidgetType {
             }
         }
         
+        console.log('⚠️ Aucune taille trouvée, utilisation de la valeur par défaut');
+        
         // Si pas de taille trouvée, utiliser la valeur par défaut des settings
         const defaultSizeMap: Record<string, string> = {
             'extra-small': '1',
@@ -1139,15 +1205,19 @@ class ImageWidget extends WidgetType {
         };
         
         // @ts-ignore
-        const defaultPosition = defaultSizeMap[this.plugin.settings.defaultImageWidth] || '3';
+        const defaultPosition = defaultSizeMap[this.plugin.settings?.defaultImageWidth] || '3';
         return defaultPosition;
     }
 
     private escapeRegExp(string: string): string {
         // Échapper tous les caractères spéciaux de regex
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            // Échapper les caractères spéciaux d'URL
-            .replace(/[%?=&]/g, '\\$&');
+        return string
+            // Échapper d'abord les caractères spéciaux de regex
+            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            // Puis échapper les caractères spéciaux d'URL
+            .replace(/[%?=&]/g, '\\$&')
+            // Échapper les caractères unicode
+            .replace(/[\u00A0-\u9999<>&]/g, (i) => '\\' + i);
     }
 
     private async downloadImage() {
@@ -1268,6 +1338,35 @@ class ImageWidget extends WidgetType {
         } catch (error) {
             console.error('Erreur lors du téléchargement:', error);
             this.showInfoBar('Erreur lors du téléchargement de l\'image', 'error');
+        }
+    }
+
+    private normalizeUrl(url: string): string {
+        try {
+            // Supprimer les caractères invisibles et les espaces
+            let cleaned = url.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+            
+            // Décoder l'URL si elle est encodée
+            try {
+                cleaned = decodeURIComponent(cleaned);
+            } catch (e) {
+                // Ignorer les erreurs de décodage
+            }
+            
+            // Normaliser les paramètres de requête
+            const urlObj = new URL(cleaned);
+            const searchParams = new URLSearchParams(urlObj.search);
+            const sortedParams = Array.from(searchParams.entries())
+                .sort(([a], [b]) => a.localeCompare(b));
+            
+            // Reconstruire l'URL avec les paramètres triés
+            urlObj.search = new URLSearchParams(sortedParams).toString();
+            
+            return urlObj.toString();
+        } catch (e) {
+            // En cas d'erreur, retourner l'URL originale nettoyée
+            console.warn('⚠️ Erreur lors de la normalisation de l\'URL:', e);
+            return url.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
         }
     }
 }

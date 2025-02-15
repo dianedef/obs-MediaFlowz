@@ -53,7 +53,7 @@ export class MediaToolbarDecorator implements PluginValue {
             const text = line.text;
 
             // Détection des liens markdown
-            const mdRegex = /\[([^\]]*)\]\(([^)]*\.(jpg|jpeg|png|gif|svg|webp)[^)]*)\)/gi;
+            const mdRegex = /\[([^\]|]*?)(?:\|(\d+))?\]\(([^)]+?\.(?:jpg|jpeg|png|gif|svg|webp)(?:[^)]*?))\)/gi;
             let mdMatch;
             while ((mdMatch = mdRegex.exec(text)) !== null) {
                 const start = line.from + mdMatch.index;
@@ -61,16 +61,26 @@ export class MediaToolbarDecorator implements PluginValue {
                 if (start < lastPos) continue;
 
                 const linkInfo = {
-                    url: mdMatch[2],
-                    altText: mdMatch[1]
+                    url: mdMatch[3],
+                    altText: mdMatch[1],
+                    size: mdMatch[2] || ''
                 };
+
+                console.log('🔍 Match trouvé:', {
+                    full: mdMatch[0],
+                    altText: linkInfo.altText,
+                    size: linkInfo.size,
+                    url: linkInfo.url
+                });
+
+                const fullUrl = linkInfo.size ? `${linkInfo.url}|${linkInfo.size}` : linkInfo.url;
 
                 builder.add(
                     end,
                     end,
                     Decoration.widget({
                         widget: new ImageWidget(this.plugin, {
-                            originalUrl: linkInfo.url,
+                            originalUrl: fullUrl,
                             resolvedUrl: this.imagePathService.getFullPath(
                                 linkInfo.url,
                                 this.plugin.app.workspace.getActiveFile()?.path || ''
