@@ -985,21 +985,62 @@ class ImageWidget extends WidgetType {
         const scrollInfo = view.editor.getScrollInfo();
         const content = view.editor.getValue();
         
-        const imagePathService = ImagePathService.getInstance(this.plugin.app);
-        
         // Préparer la mise à jour en une seule fois
         if (isExternal) {
             const baseUrl = this.url; // Utiliser l'URL complète
             console.log('🔍 URL de base:', baseUrl);
             
-            // D'abord, chercher dans le format wiki
-            const wikiPattern = `\\[\\[${this.escapeRegExp(baseUrl)}(?:\\|\\d+)?\\]\\]`;
-            console.log('🔍 Pattern wiki:', wikiPattern);
-            const wikiRegex = new RegExp(wikiPattern, 'g');
+            // D'abord, chercher dans le format markdown avec taille dans le texte alternatif
+            const mdPattern = `\\[([^\\]|]*?)(?:\\|\\d+)?\\]\\(${this.escapeRegExp(baseUrl)}\\)`;
+            const mdRegex = new RegExp(mdPattern, 'g');
+            
+            console.log('🔍 Pattern markdown:', mdPattern);
             
             let bestMatch = null;
             let bestMatchDistance = Infinity;
             let match;
+            
+            while ((match = mdRegex.exec(content)) !== null) {
+                const distance = Math.abs(match.index - this.startPosition);
+                if (distance < bestMatchDistance) {
+                    bestMatchDistance = distance;
+                    bestMatch = match;
+                }
+            }
+            
+            if (bestMatch) {
+                console.log('📝 Mise à jour du lien markdown:', {
+                    original: bestMatch[0],
+                    baseUrl,
+                    width
+                });
+
+                const start = view.editor.posToOffset({ 
+                    line: content.substring(0, bestMatch.index).split('\n').length - 1,
+                    ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
+                });
+                const end = start + bestMatch[0].length;
+                
+                // Extraire le texte alternatif du match original
+                const altText = bestMatch[1].split('|')[0] || '';
+                // Construire le remplacement en préservant l'URL complète
+                const replacement = `[${altText}|${width}](${baseUrl})`;
+                
+                console.log('📝 Remplacement markdown:', {
+                    from: bestMatch[0],
+                    to: replacement
+                });
+                
+                this.applyReplacement(view, start, end, replacement, width, scrollInfo);
+                return;
+            }
+            
+            // Si pas trouvé en format markdown, chercher en format wiki
+            const wikiPattern = `\\[\\[${this.escapeRegExp(baseUrl)}(?:\\|\\d+)?\\]\\]`;
+            const wikiRegex = new RegExp(wikiPattern, 'g');
+            
+            bestMatch = null;
+            bestMatchDistance = Infinity;
             
             while ((match = wikiRegex.exec(content)) !== null) {
                 const distance = Math.abs(match.index - this.startPosition);
@@ -1021,53 +1062,9 @@ class ImageWidget extends WidgetType {
                     ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
                 });
                 const end = start + bestMatch[0].length;
-                
-                // Préserver l'URL complète avec ses paramètres
                 const replacement = `[[${baseUrl}|${width}]]`;
                 
                 console.log('📝 Remplacement wiki:', {
-                    from: bestMatch[0],
-                    to: replacement
-                });
-                
-                this.applyReplacement(view, start, end, replacement, width, scrollInfo);
-                return;
-            }
-            
-            // Si pas trouvé en format wiki, chercher en format markdown
-            const pattern = `\\[([^\\]|]*?)(?:\\|\\d+)?\\]\\(${this.escapeRegExp(baseUrl)}\\)`;
-            const regex = new RegExp(pattern, 'g');
-            
-            console.log('🔍 Recherche avec pattern:', pattern);
-            
-            bestMatch = null;
-            bestMatchDistance = Infinity;
-            
-            while ((match = regex.exec(content)) !== null) {
-                const distance = Math.abs(match.index - this.startPosition);
-                if (distance < bestMatchDistance) {
-                    bestMatchDistance = distance;
-                    bestMatch = match;
-                }
-            }
-            
-            if (bestMatch) {
-                console.log('📝 Mise à jour du lien:', {
-                    original: bestMatch[0],
-                    baseUrl,
-                    width
-                });
-
-                const start = view.editor.posToOffset({ 
-                    line: content.substring(0, bestMatch.index).split('\n').length - 1,
-                    ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
-                });
-                const end = start + bestMatch[0].length;
-                
-                const altText = bestMatch[1].split('|')[0] || '';
-                const replacement = `[${altText}|${width}](${baseUrl})`;
-                
-                console.log('📝 Remplacement:', {
                     from: bestMatch[0],
                     to: replacement
                 });

@@ -52,18 +52,20 @@ export class MediaToolbarDecorator implements PluginValue {
             const line = doc.line(i);
             const text = line.text;
 
-            // Détection des liens markdown
-            const mdRegex = /\[([^\]|]*?)(?:\|(\d+))?\]\(([^)]+?\.(?:jpg|jpeg|png|gif|svg|webp)(?:[^)]*?))\)/gi;
+            // Détection des liens markdown avec meilleure gestion de la taille et des URLs complexes
+            const mdRegex = /\[([^\]|]*?)(?:\|(\d+))?\]\(([^)]+?\.(?:jpg|jpeg|png|gif|svg|webp)[^)]*?)\)/gi;
             let mdMatch;
             while ((mdMatch = mdRegex.exec(text)) !== null) {
                 const start = line.from + mdMatch.index;
                 const end = start + mdMatch[0].length;
                 if (start < lastPos) continue;
 
+                // Extraire le texte alternatif et la taille
+                const altTextParts = mdMatch[1].split('|');
                 const linkInfo = {
                     url: mdMatch[3],
-                    altText: mdMatch[1],
-                    size: mdMatch[2] || ''
+                    altText: altTextParts[0], // Le texte avant le |
+                    size: altTextParts.length > 1 ? altTextParts[1] : mdMatch[2] || ''
                 };
 
                 console.log('🔍 Match trouvé:', {

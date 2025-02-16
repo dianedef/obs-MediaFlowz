@@ -18,6 +18,7 @@
     "@typescript-eslint/eslint-plugin": "5.29.0",
     "@typescript-eslint/parser": "5.29.0",
     "@vitejs/plugin-vue": "^4.6.2",
+    "jsdom": "^26.0.0",
     "msw": "^2.7.0",
     "obsidian": "latest",
     "typescript": "^5.7.2",
