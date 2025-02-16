@@ -17,10 +17,18 @@ A powerful Obsidian plugin that facilitates the management of images and GIFs, a
 
 ### Smart Image Management
 - Easy import of images and GIFs via URL
-- Intuitive and responsive user interface
+- Intuitive user interface with a widget with buttons on each image
+- Widget with buttons and infos on each image
+- Quickly see the image size, type, and weight
+- Open the image in a new tab in Obsidian or in the system explorer
+- Select the image size
+- Download the image if it's an external image
+- Copy the image link
+- Rename the image
+- Delete the image
 
 ### Cloud Uploads
-- Upload images from the editor
+- Auto-upload images from the editor on pasting
 - Automatically replace local image links with cloud URLs
 - Support for custom domains for better branding and SEO when available in the service
 - Secure API communication for uploads
