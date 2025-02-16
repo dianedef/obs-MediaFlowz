@@ -103,15 +103,11 @@ export interface IIgnoredFoldersSettings {
  */
 export interface IPluginSettings {
     /** Service actif */
-    service: string;
+    service: SupportedService | '';
     /** Mode d'affichage actuel */
     currentMode: TViewMode;
     /** Configuration Cloudinary */
-    cloudinary: {
-        cloudName: string;
-        apiKey: string;
-        apiSecret: string;
-        uploadPreset: string;
+    cloudinary?: ICloudinarySettings & {
         folder: string;
     };
     /** Configuration TwicPics */
@@ -146,8 +142,6 @@ export interface IPluginSettings {
     };
     /** Taille par défaut des images */
     defaultImageWidth: 'extra-small' | 'small' | 'medium' | 'large' | 'extra-large';
-    /** Modifier la taille avec alt + scroll */
-    enableAltScroll: boolean;
     /** Actions des clics de souris */
     mouseActions: {
         /** Action du clic du milieu */
@@ -180,19 +174,13 @@ export interface IPluginSettings {
             quality: number;
         };
     };
-    /** Configuration Bunny.net */
-    bunnycdn: {
-        storageZoneName: string;
-        apiKey: string;
-        region: string;
-        pullZone: string;
-    };
     /** Features */
     features: {
+        /** Redimensionnement des images avec Alt + Scroll */
         imageResize: boolean;
         /** Upload automatique vers le cloud */
         autoUpload: boolean;
-        /** Conserver une copie locale après l'upload */
+        /** Conserver une copie locale */
         keepLocalCopy: boolean;
         /** Dossier de destination pour les uploads */
         uploadFolder: string;
@@ -203,15 +191,8 @@ export interface IPluginSettings {
  * Structure minimale des paramètres initiaux
  */
 export const DEFAULT_SETTINGS: IPluginSettings = {
-    service: 'local',
+    service: '',
     currentMode: 'tab',
-    cloudinary: {
-        cloudName: '',
-        apiKey: '',
-        apiSecret: '',
-        uploadPreset: '',
-        folder: ''
-    },
     ignoredFolders: [],
     ignoredFoldersSettings: {
         useNoteFolders: false
@@ -228,17 +209,12 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
         addCaption: true,
         resizeImage: true
     },
-    cloudflare: {
-        accountId: '',
-        imagesToken: ''
-    },
     enabledMediaTypes: {
         images: true,
         videos: true,
         gifs: true
     },
     defaultImageWidth: 'medium',
-    enableAltScroll: true,
     mouseActions: {
         middleClick: {
             enabled: true,
@@ -252,30 +228,18 @@ export const DEFAULT_SETTINGS: IPluginSettings = {
     imageOptimization: {
         mode: 'smart',
         smartMode: {
-            maxSizeKb: 500,  // 500Ko max par défaut
-            minQuality: 80,  // Ne pas descendre sous 80% de qualité
-            targetDPI: 144   // DPI standard pour écrans haute résolution
+            maxSizeKb: 500,
+            minQuality: 80,
+            targetDPI: 144
         },
         manualMode: {
             quality: 85
         }
     },
-    bunny: {
-        storageZones: [],
-        defaultStorageZone: '',
-        useFolderMapping: true,
-        customCDNs: {}
-    },
-    bunnycdn: {
-        storageZoneName: '',
-        apiKey: '',
-        region: '',
-        pullZone: ''
-    },
     features: {
         imageResize: true,
         autoUpload: true,
         keepLocalCopy: true,
-        uploadFolder: 'images/cloud'
+        uploadFolder: ''
     }
 }; 

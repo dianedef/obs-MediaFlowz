@@ -1,7 +1,13 @@
 import { App, PluginSettingTab, Setting, Menu, TFolder, Modal, TextComponent, ButtonComponent } from 'obsidian';
 import MediaFlowzPlugin from '../main';
 import { getTranslation } from './Translations';
-import { SupportedService } from '../types/settings';
+import { 
+    SupportedService, 
+    ICloudinarySettings,
+    ITwicPicsSettings,
+    ICloudflareSettings,
+    IBunnySettings
+} from '../types/settings';
 import { EventBusService } from '../services/EventBusService';
 import { SettingsService } from './SettingsService';
 import { showNotice, NOTICE_DURATIONS } from '../utils/notifications';
@@ -25,54 +31,28 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
         containerEl.addClass('mediaflowz-settings');
 
 // Section des fonctionnalités
-        containerEl.createEl('h2', { text: getTranslation('settings.features.title') });
-
-        // Auto-upload
-        new Setting(containerEl)
-            .setName('Upload automatique vers le cloud')
-            .setDesc('Télécharger automatiquement vers le cloud les images lorsqu\'elles sont collées dans une note')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.features.autoUpload ?? true)
-                .onChange(async (value) => {
-                    this.plugin.settings.features.autoUpload = value;
-                    await this.plugin.saveSettings();
-
-                    // Supprimer l'ancienne section si elle existe
-                    const existingSection = containerEl.querySelector('.mediaflowz-auto-upload-section');
-                    if (existingSection) {
-                        existingSection.remove();
-                    }
-                    
-                    // Si l'auto-upload est activé, afficher les options supplémentaires
-                    if (value) {
-                        this.displayAutoUploadSettings(containerEl);
-                    }
-                })
-            );
-
-        // Si l'auto-upload est déjà activé, afficher les options
-        if (this.plugin.settings.features.autoUpload) {
-            this.displayAutoUploadSettings(containerEl);
-        }
+        const featuresSection = containerEl.createDiv('mediaflowz-features-section');
+        featuresSection.createEl('h2', { text: getTranslation('settings.features.title') });
 
         // Taille par défaut des images
-        new Setting(containerEl)
-            .setName('Taille par défaut des images')
-            .setDesc('Définit la taille par défaut des images dans l\'éditeur')
+        new Setting(featuresSection)
+            .setName(getTranslation('settings.imageSize.default'))
+            .setDesc(getTranslation('settings.imageSize.default.desc'))
             .addDropdown(dropdown => dropdown
-                .addOption('extra-small', 'Extra petit')
-                .addOption('small', 'Petit')
-                .addOption('medium', 'Moyen')
-                .addOption('large', 'Grand')
-                .addOption('extra-large', 'Extra grand')
+                .addOption('extra-small', getTranslation('settings.imageSize.extraSmall'))
+                .addOption('small', getTranslation('settings.imageSize.small'))
+                .addOption('medium', getTranslation('settings.imageSize.medium'))
+                .addOption('large', getTranslation('settings.imageSize.large'))
+                .addOption('extra-large', getTranslation('settings.imageSize.original'))
                 .setValue(this.plugin.settings.defaultImageWidth)
                 .onChange(async (value) => {
                     this.plugin.settings.defaultImageWidth = value as 'extra-small' | 'small' | 'medium' | 'large' | 'extra-large';
                     await this.plugin.saveSettings();
                 }));
         
-        // Barre d'outils image
-        new Setting(containerEl)
+// Section de la barre d'outils
+        const toolbarSection = featuresSection.createDiv('mediaflowz-toolbar-section');
+        new Setting(toolbarSection)
             .setName(getTranslation('settings.features.imageToolbar.name'))
             .setDesc(getTranslation('settings.features.imageToolbar.desc'))
             .addToggle(toggle => toggle
@@ -82,20 +62,20 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                     
                     // Supprimer l'ancienne section si elle existe
-                    const existingSection = containerEl.querySelector('.mediaflowz-toolbar-buttons-section');
+                    const existingSection = toolbarSection.querySelector('.mediaflowz-toolbar-buttons-section');
                     if (existingSection) {
                         existingSection.remove();
                     }
                     
                     // Si la barre d'outils est activée, afficher les options
                     if (value) {
-                        this.displayToolbarSettings(containerEl);
+                        this.displayToolbarSettings(toolbarSection);
                     }
                 })
             );
 
         // Alt + Scroll
-        new Setting(containerEl)
+        new Setting(featuresSection)
             .setName(getTranslation('settings.imageSize.altScroll'))
             .setDesc(getTranslation('settings.imageSize.altScroll.desc'))
             .addToggle(toggle => toggle
@@ -117,7 +97,7 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
         
         // Section des actions de souris
         // Clic du milieu
-        new Setting(containerEl)
+        new Setting(featuresSection)
             .setName(getTranslation('settings.mouseActions.middleClick'))
             .setDesc(getTranslation('settings.mouseActions.middleClick.desc'))
             .addToggle(toggle => toggle
@@ -139,7 +119,7 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
             });
 
         // Clic droit
-        new Setting(containerEl)
+        new Setting(featuresSection)
             .setName(getTranslation('settings.mouseActions.rightClick'))
             .setDesc(getTranslation('settings.mouseActions.rightClick.desc'))
             .addToggle(toggle => toggle
@@ -160,209 +140,56 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                     });
             });
 
-// Section de sélection du service
-        new Setting(containerEl)
-        const serviceSection = containerEl.createDiv('mediaflowz-service-section');
-        new Setting(serviceSection)
-            .setName(getTranslation('settings.service'))
-            .setDesc(getTranslation('settings.serviceDesc'))
-            .addDropdown(dropdown => {
-                // Ajouter une option vide
-                dropdown.addOption('', getTranslation('settings.selectService'));
-                dropdown.addOption('cloudinary', 'Cloudinary');
-                dropdown.addOption('twicpics', 'TwicPics');
-                dropdown.addOption('cloudflare', 'Cloudflare');
-                dropdown.addOption('bunny', 'Bunny.net');
-                
-                // Définir la valeur actuelle
-                dropdown.setValue(this.plugin.settings.service || '');
-                
-                // Gérer le changement
-                dropdown.onChange(async (value) => {
-                    if (!value) {
-                        // Si aucun service n'est sélectionné, réinitialiser les paramètres
-                        await this.updateSettings({
-                            service: undefined,
-                            cloudinary: undefined,
-                            twicpics: undefined,
-                            cloudflare: undefined,
-                            bunny: undefined
-                        });
-                        this.display();
-                        return;
-                    }
+// Section d'auto-upload
+        const uploadSection = containerEl.createDiv('mediaflowz-upload-section');
+        uploadSection.createEl('h2', { text: getTranslation('settings.features.autoupload.title') });
 
-                    const settingsSection = containerEl.querySelector('.mediaflowz-service-settings-section');
-                    if (settingsSection) {
-                        settingsSection.addClass('fade-out');
-                    }
+        // Auto-upload toggle
+        new Setting(uploadSection)
+            .setName(getTranslation('settings.features.autoupload.title'))
+            .setDesc(getTranslation('settings.features.autoupload.desc'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.features.autoUpload ?? true)
+                .onChange(async (value) => {
+                    this.plugin.settings.features.autoUpload = value;
+                    await this.plugin.saveSettings();
 
-                    try {
-                        // Créer un nouvel objet de paramètres avec le service sélectionné
-                        const newSettings = {
-                            ...this.plugin.settings,
-                            service: value as SupportedService
-                        };
+                    // Nettoyer toutes les sections liées à l'auto-upload
+                    const sectionsToRemove = [
+                        '.mediaflowz-auto-upload-section',
+                        '.mediaflowz-service-section',
+                        '.mediaflowz-service-settings-section'
+                    ];
 
-                        console.log('Updating settings with:', newSettings);
-
-                        // Mettre à jour les paramètres
-                        await this.updateSettings(newSettings);
-                        
-                        // Recharger l'interface
-                        this.display();
-
-                        // Notification
-                        showNotice(
-                            getTranslation('notices.serviceChanged')
-                                .replace('{service}', value.charAt(0).toUpperCase() + value.slice(1)),
-                            NOTICE_DURATIONS.MEDIUM
-                        );
-
-                        // Animation de fade-in
-                        const newSettingsSection = containerEl.querySelector('.mediaflowz-service-settings-section');
-                        if (newSettingsSection) {
-                            newSettingsSection.addClass('fade-in');
-                        }
-                    } catch (error) {
-                        showNotice(
-                            error instanceof Error ? error.message : 'Erreur lors du changement de service',
-                            NOTICE_DURATIONS.LONG
-                        );
-                    }
-                });
-            });
-
-        // Section des paramètres spécifiques au service
-        if (this.plugin.settings.service) {
-            const serviceSettingsSection = containerEl.createDiv('mediaflowz-service-settings-section');
-
-            // Afficher les paramètres selon le service sélectionné
-            switch (this.plugin.settings.service) {
-                case SupportedService.CLOUDINARY:
-                    this.displayCloudinarySettings(serviceSettingsSection);
-                    break;
-                case SupportedService.TWICPICS:
-                    this.displayTwicPicsSettings(serviceSettingsSection);
-                    break;
-                case SupportedService.CLOUDFLARE:
-                    this.displayCloudflareSettings(serviceSettingsSection);
-                    break;
-                case SupportedService.BUNNY:
-                    this.displayBunnySettings(serviceSettingsSection);
-                    break;
-            }
-        }
-
-// Autoupload, Section des dossiers ignorés
-        containerEl.createEl('h2', { text: getTranslation('settings.features.autoupload.title') });
-        containerEl.createEl('p', { text: getTranslation('settings.features.autoupload.desc') });
-        const ignoredFoldersSection = containerEl.createDiv('mediaflowz-ignored-folders-section');
-        ignoredFoldersSection.createEl('h3', { text: getTranslation('settings.ignoredFolders.title') });
-        // Liste des dossiers ignorés actuels
-        const ignoredFoldersList = ignoredFoldersSection.createEl('div', { cls: 'mediaflowz-ignored-folders-list' });
-        this.plugin.settings.ignoredFolders.forEach((folder, index) => {
-            const folderDiv = ignoredFoldersList.createEl('div', { cls: 'mediaflowz-ignored-folder-item' });
-            
-            new Setting(folderDiv)
-                .setName(folder)
-                .addButton(button => button
-                    .setIcon('trash')
-                    .setTooltip(getTranslation('settings.ignoredFolders.remove'))
-                    .onClick(async () => {
-                        const newIgnoredFolders = [...this.plugin.settings.ignoredFolders];
-                        newIgnoredFolders.splice(index, 1);
-                        await this.updateSettings({
-                            ignoredFolders: newIgnoredFolders
-                        });
-                        this.display();
-                    }));
-        });
-        // Bouton pour ajouter un nouveau dossier à ignorer
-        new Setting(ignoredFoldersSection)
-            .setName(getTranslation('settings.ignoredFolders.add'))
-            .setDesc(getTranslation('settings.ignoredFolders.addDesc'))
-            .addButton(button => button
-                .setButtonText(getTranslation('settings.ignoredFolders.select'))
-                .onClick((e: MouseEvent) => {
-                    const menu = new Menu();
-                    
-                    this.buildFolderMenu(menu, this.app.vault.getRoot(), async (folder: TFolder) => {
-                        if (!this.plugin.settings.ignoredFolders.includes(folder.path)) {
-                            const newIgnoredFolders = [...this.plugin.settings.ignoredFolders, folder.path];
-                            await this.updateSettings({
-                                ignoredFolders: newIgnoredFolders
-                            });
-                            this.display();
+                    sectionsToRemove.forEach(selector => {
+                        const section = uploadSection.querySelector(selector);
+                        if (section) {
+                            section.remove();
                         }
                     });
-
-                    menu.showAtMouseEvent(e);
-                }));
-        // Option pour créer un dossier par note
-        new Setting(ignoredFoldersSection)
-        .setName(getTranslation('settings.ignoredFolders.useNoteFolders'))
-        .setDesc(getTranslation('settings.ignoredFolders.useNoteFolders.desc'))
-        .addToggle(toggle => toggle
-            .setValue(this.plugin.settings.ignoredFoldersSettings.useNoteFolders)
-            .onChange(async (value) => {
-                this.plugin.settings.ignoredFoldersSettings.useNoteFolders = value;
-                await this.plugin.saveSettings();
-            })
-        );
-
-// Section des types de médias
-        containerEl.createEl('h3', { text: getTranslation('settings.mediaTypes.title') });
-        containerEl.createEl('p', { 
-            text: getTranslation('settings.mediaTypes.desc'),
-            cls: 'mediaflowz-setting-item-description'
-        });
-
-        // Images
-        new Setting(containerEl)
-            .setName(getTranslation('settings.mediaTypes.images'))
-            .setDesc(getTranslation('settings.mediaTypes.images.desc'))
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enabledMediaTypes.images)
-                .onChange(async (value) => {
-                    this.plugin.settings.enabledMediaTypes.images = value;
-                    await this.plugin.saveSettings();
+                    
+                    // Si l'auto-upload est activé, afficher les options supplémentaires
+                    if (value) {
+                        this.displayAutoUploadSettings(uploadSection);
+                    }
                 })
             );
 
-        // Vidéos
-        new Setting(containerEl)
-            .setName(getTranslation('settings.mediaTypes.videos'))
-            .setDesc(getTranslation('settings.mediaTypes.videos.desc'))
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enabledMediaTypes.videos)
-                .onChange(async (value) => {
-                    this.plugin.settings.enabledMediaTypes.videos = value;
-                    await this.plugin.saveSettings();
-                })
-            );
-
-        // GIFs
-        new Setting(containerEl)
-            .setName(getTranslation('settings.mediaTypes.gifs'))
-            .setDesc(getTranslation('settings.mediaTypes.gifs.desc'))
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enabledMediaTypes.gifs)
-                .onChange(async (value) => {
-                    this.plugin.settings.enabledMediaTypes.gifs = value;
-                    await this.plugin.saveSettings();
-                })
-            );
+        // Si l'auto-upload est déjà activé, afficher les options
+        if (this.plugin.settings.features.autoUpload) {
+            this.displayAutoUploadSettings(uploadSection);
+        }
 
 // Section d'optimisation des images
-    containerEl.createEl('h2', { text: getTranslation('settings.imageOptimization.title') });
-    containerEl.createEl('p', { 
+        const optimizationSection = containerEl.createDiv('mediaflowz-optimization-section');
+        optimizationSection.createEl('h2', { text: getTranslation('settings.imageOptimization.title') });
+        optimizationSection.createEl('p', { 
         text: getTranslation('settings.imageOptimization.desc'),
         cls: 'mediaflowz-setting-item-description'
     });
 
     // Mode d'optimisation
-    new Setting(containerEl)
+        new Setting(optimizationSection)
         .setName(getTranslation('settings.imageOptimization.mode'))
         .setDesc(getTranslation('settings.imageOptimization.mode.desc'))
         .addDropdown(dropdown => {
@@ -379,7 +206,7 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
 
         // Options du mode intelligent
         if (this.plugin.settings.imageOptimization.mode === 'smart') {
-            const smartSection = containerEl.createDiv('mediaflowz-smart-optimization-section');
+            const smartSection = optimizationSection.createDiv('mediaflowz-smart-optimization-section');
             
             // Description du mode intelligent
             smartSection.createEl('p', {
@@ -448,7 +275,7 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
 
         // Options du mode manuel
         if (this.plugin.settings.imageOptimization.mode === 'manual') {
-            const manualSection = containerEl.createDiv('mediaflowz-manual-optimization-section');
+            const manualSection = optimizationSection.createDiv('mediaflowz-manual-optimization-section');
 
             // Description du mode manuel
             manualSection.createEl('p', {
@@ -506,14 +333,30 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
     }
 
     private displayCloudinarySettings(containerEl: HTMLElement): void {
-        const titleKey = 'settings.cloudinary.title';
-        const descKey = 'settings.cloudinary.description';
-
-        containerEl.createEl('h3', { text: getTranslation(titleKey) });
-        containerEl.createEl('p', { 
-            text: getTranslation(descKey),
-            cls: 'mediaflowz-setting-item-description'
+        containerEl.createEl('h3', { text: getTranslation('settings.cloudinary.title') });
+        
+        const description = containerEl.createEl('p', { 
+            cls: 'setting-item-description'
         });
+        description.innerHTML = `
+            ${getTranslation('settings.cloudinary.description')}
+            <br><br>
+            ${getTranslation('settings.cloudinary.description.features')}
+            <ul>
+                <li>Uploader l'image vers votre compte Cloudinary</li>
+                <li>Insérer le lien de l'image optimisée dans votre note</li>
+                <li>Appliquer automatiquement les transformations configurées</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.cloudinary.description.cdn')}
+            <br><br>
+            ${getTranslation('settings.cloudinary.setup.title')}
+            <ul>
+                <li>${getTranslation('settings.cloudinary.setup.step1')}</li>
+                <li>${getTranslation('settings.cloudinary.setup.step2')}</li>
+                <li>${getTranslation('settings.cloudinary.setup.step3')}</li>
+            </ul>
+        `;
 
         new Setting(containerEl)
             .setName(getTranslation('settings.cloudinary.cloudName'))
@@ -522,11 +365,8 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                 .setPlaceholder('my-cloud')
                 .setValue(this.plugin.settings.cloudinary?.cloudName ?? '')
                 .onChange(async (value) => {
-                    await this.updateSettings({
-                        cloudinary: {
-                            ...this.plugin.settings.cloudinary,
+                    await this.updateCloudinarySettings({
                             cloudName: value
-                        }
                     });
                 }));
 
@@ -537,11 +377,8 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                 .setPlaceholder('123456789012345')
                 .setValue(this.plugin.settings.cloudinary?.apiKey ?? '')
                 .onChange(async (value) => {
-                    await this.updateSettings({
-                        cloudinary: {
-                            ...this.plugin.settings.cloudinary,
+                    await this.updateCloudinarySettings({
                             apiKey: value
-                        }
                     });
                 }));
 
@@ -552,11 +389,8 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                 .setPlaceholder('abcdefghijklmnopqrstuvwxyz123456')
                 .setValue(this.plugin.settings.cloudinary?.apiSecret ?? '')
                 .onChange(async (value) => {
-                    await this.updateSettings({
-                        cloudinary: {
-                            ...this.plugin.settings.cloudinary,
+                    await this.updateCloudinarySettings({
                             apiSecret: value
-                        }
                     });
                 }));
 
@@ -567,24 +401,37 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                 .setPlaceholder('my-preset')
                 .setValue(this.plugin.settings.cloudinary?.uploadPreset ?? '')
                 .onChange(async (value) => {
-                    await this.updateSettings({
-                        cloudinary: {
-                            ...this.plugin.settings.cloudinary,
+                    await this.updateCloudinarySettings({
                             uploadPreset: value || undefined
-                        }
                     });
                 }));
     }
 
     private displayTwicPicsSettings(containerEl: HTMLElement): void {
-        const titleKey = 'settings.twicpics.title';
-        const descKey = 'settings.twicpics.description';
-
-        containerEl.createEl('h3', { text: getTranslation(titleKey) });
-        containerEl.createEl('p', { 
-            text: getTranslation(descKey),
-            cls: 'mediaflowz-setting-item-description'
+        containerEl.createEl('h3', { text: getTranslation('settings.twicpics.title') });
+        
+        const description = containerEl.createEl('p', { 
+            cls: 'setting-item-description'
         });
+        description.innerHTML = `
+            ${getTranslation('settings.twicpics.description')}
+            <br><br>
+            ${getTranslation('settings.twicpics.description.features')}
+            <ul>
+                <li>Uploader l'image vers votre compte TwicPics</li>
+                <li>Insérer le lien de l'image optimisée dans votre note</li>
+                <li>Appliquer automatiquement les transformations configurées</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.twicpics.description.realtime')}
+            <br><br>
+            ${getTranslation('settings.twicpics.setup.title')}
+            <ul>
+                <li>${getTranslation('settings.twicpics.setup.step1')}</li>
+                <li>${getTranslation('settings.twicpics.setup.step2')}</li>
+                <li>${getTranslation('settings.twicpics.setup.step3')}</li>
+            </ul>
+        `;
 
         new Setting(containerEl)
             .setName(getTranslation('settings.twicpics.domain'))
@@ -624,15 +471,44 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
     }
 
     private displayCloudflareSettings(containerEl: HTMLElement): void {
-        console.log('DisplayingCloudflare settings');
-        const titleKey = 'settings.cloudflare.title';
-        const descKey = 'settings.cloudflare.description';
-
-        containerEl.createEl('h3', { text: getTranslation(titleKey) });
-        containerEl.createEl('p', { 
-            text: getTranslation(descKey),
-            cls: 'mediaflowz-setting-item-description'
+        containerEl.createEl('h3', { text: getTranslation('settings.cloudflare.title') });
+        
+        const description = containerEl.createEl('p', { 
+            cls: 'setting-item-description'
         });
+        description.innerHTML = `
+            ${getTranslation('settings.cloudflare.description')}
+            <br><br>
+            ${getTranslation('settings.cloudflare.description.features')}
+            <ul>
+                <li>Uploader l'image vers votre compte Cloudflare</li>
+                <li>Insérer le lien de l'image optimisée dans votre note</li>
+                <li>Servir l'image via le CDN de Cloudflare</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.cloudflare.description.protection')}
+            <br><br>
+            ${getTranslation('settings.cloudflare.description.organization')}
+            <ul>
+                <li>Utilisez des variants différents (ex: obsidian/blog, obsidian/docs)</li>
+                <li>Ou configurez des domaines personnalisés différents par projet</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.cloudflare.description.r2')}
+            <ul>
+                <li>Utiliser le dashboard Cloudflare (interface basique)</li>
+                <li>Utiliser des outils compatibles S3 (comme Cyberduck, S3 Browser)</li>
+                <li>Accéder via l'API R2 ou S3</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.cloudflare.setup.title')}
+            <ul>
+                <li>${getTranslation('settings.cloudflare.setup.step1')}</li>
+                <li>${getTranslation('settings.cloudflare.setup.step2')}</li>
+                <li>${getTranslation('settings.cloudflare.setup.step3')}</li>
+                <li>${getTranslation('settings.cloudflare.setup.step4')}</li>
+            </ul>
+        `;
 
         // Account ID
         new Setting(containerEl)
@@ -675,23 +551,44 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
     }
 
     private displayBunnySettings(containerEl: HTMLElement): void {
-        const titleKey = 'settings.bunny.title';
-        const descKey = 'settings.bunny.description';
-
-        containerEl.createEl('h3', { text: getTranslation(titleKey) });
-        containerEl.createEl('p', { 
-            text: getTranslation(descKey),
-            cls: 'mediaflowz-setting-item-description'
+        containerEl.createEl('h3', { text: getTranslation('settings.bunny.title') });
+        
+        const description = containerEl.createEl('p', { 
+            cls: 'setting-item-description'
         });
+        description.innerHTML = `
+            ${getTranslation('settings.bunny.description')}
+            <br><br>
+            ${getTranslation('settings.bunny.description.features')}
+            <ul>
+                <li>Uploader l'image vers votre zone de stockage Bunny.net</li>
+                <li>Insérer le lien de l'image optimisée dans votre note</li>
+                <li>Servir l'image via le CDN Bunny.net</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.bunny.description.cdn')}
+            <br><br>
+            ${getTranslation('settings.bunny.description.advantages')}
+            <ul>
+                <li>Stockage flexible avec les Storage Zones</li>
+                <li>CDN performant avec les Pull Zones</li>
+                <li>Possibilité d'utiliser des domaines personnalisés</li>
+                <li>Tarification simple et transparente</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.bunny.setup.title')}
+            <ul>
+                <li>${getTranslation('settings.bunny.setup.step1')}</li>
+                <li>${getTranslation('settings.bunny.setup.step2')}</li>
+                <li>${getTranslation('settings.bunny.setup.step3')}</li>
+                <li>${getTranslation('settings.bunny.setup.step4')}</li>
+            </ul>
+            <br>
+            ${getTranslation('settings.bunny.setup.note')}
+        `;
 
         // Section des zones de stockage
         const storageZonesSection = containerEl.createDiv('mediaflowz-storage-zones-section');
-        storageZonesSection.createEl('h4', { text: getTranslation('settings.bunny.storageZones') });
-        storageZonesSection.createEl('p', { 
-            text: getTranslation('settings.bunny.storageZonesDesc'),
-            cls: 'mediaflowz-setting-item-description'
-        });
-
         // Liste des zones de stockage actuelles
         const storageZones = this.plugin.settings.bunny?.storageZones || [];
         storageZones.forEach((zone, index) => {
@@ -724,8 +621,6 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                     new Setting(foldersEl)
                         .setName(folder)
                         .addExtraButton(button => button
-                            .setIcon('trash')
-                            .setTooltip(getTranslation('settings.bunny.removeFolder'))
                             .onClick(async () => {
                                 const updatedZone = {
                                     ...zone,
@@ -891,10 +786,10 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                                 isOverMenu = false;
                                 hideSubMenu();
                             });
-                        }
                     }
 
                     item.onClick(() => onFolderSelect(subFolder));
+                    }
                 });
             } else {
                 menu.addItem(item => {
@@ -1045,74 +940,165 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
             );
     }
 
-    private async updateTwicPicsSettings(settings: Partial<typeof this.plugin.settings.twicpics> | undefined) {
-        if (!settings) return;
+    private async updateCloudinarySettings(settings: Partial<ICloudinarySettings & { folder: string }>) {
+        if (!this.plugin.settings.cloudinary) {
+            // Initialiser avec des valeurs par défaut si non défini
+            this.plugin.settings.cloudinary = {
+                cloudName: '',
+                apiKey: '',
+                apiSecret: '',
+                uploadPreset: '',
+                folder: ''
+            };
+        }
+
+        await this.updateSettings({
+            cloudinary: {
+                ...this.plugin.settings.cloudinary,
+                ...settings
+            }
+        });
+    }
+
+    private async updateTwicPicsSettings(settings: Partial<ITwicPicsSettings>) {
+        if (!this.plugin.settings.twicpics) {
+            // Initialiser avec des valeurs par défaut si non défini
+            this.plugin.settings.twicpics = {
+                domain: '',
+                apiKey: '',
+                path: ''
+            };
+        }
         
         await this.updateSettings({
             twicpics: {
-                domain: settings.domain ?? this.plugin.settings.twicpics?.domain ?? '',
-                apiKey: settings.apiKey ?? this.plugin.settings.twicpics?.apiKey ?? '',
-                path: settings.path ?? this.plugin.settings.twicpics?.path ?? ''
+                ...this.plugin.settings.twicpics,
+                ...settings
             }
         });
     }
 
-    private async updateCloudflareSettings(settings: Partial<typeof this.plugin.settings.cloudflare> | undefined) {
-        if (!settings) return;
+    private async updateCloudflareSettings(settings: Partial<ICloudflareSettings>) {
+        if (!this.plugin.settings.cloudflare) {
+            // Initialiser avec des valeurs par défaut si non défini
+            this.plugin.settings.cloudflare = {
+                accountId: '',
+                imagesToken: '',
+                deliveryHash: '',
+                defaultVariant: '',
+                customDomain: ''
+            };
+        }
         
         await this.updateSettings({
             cloudflare: {
-                accountId: settings.accountId ?? this.plugin.settings.cloudflare?.accountId ?? '',
-                imagesToken: settings.imagesToken ?? this.plugin.settings.cloudflare?.imagesToken ?? '',
-                deliveryHash: settings.deliveryHash ?? this.plugin.settings.cloudflare?.deliveryHash ?? '',
-                defaultVariant: settings.defaultVariant ?? this.plugin.settings.cloudflare?.defaultVariant ?? '',
-                customDomain: settings.customDomain ?? this.plugin.settings.cloudflare?.customDomain ?? ''
+                ...this.plugin.settings.cloudflare,
+                ...settings
             }
         });
     }
 
-    private async updateBunnySettings(settings: Partial<typeof this.plugin.settings.bunny> | undefined) {
-        if (!settings) return;
+    private async updateBunnySettings(settings: Partial<IBunnySettings>) {
+        if (!this.plugin.settings.bunny) {
+            // Initialiser avec des valeurs par défaut si non défini
+            this.plugin.settings.bunny = {
+                storageZones: [],
+                defaultStorageZone: '',
+                useFolderMapping: true
+            };
+        }
         
         await this.updateSettings({
             bunny: {
-                storageZones: settings.storageZones ?? this.plugin.settings.bunny?.storageZones ?? [],
-                defaultStorageZone: settings.defaultStorageZone ?? this.plugin.settings.bunny?.defaultStorageZone ?? '',
-                useFolderMapping: settings.useFolderMapping ?? this.plugin.settings.bunny?.useFolderMapping ?? true
+                ...this.plugin.settings.bunny,
+                ...settings
             }
         });
     }
 
+// Auto-upload settings
     private displayAutoUploadSettings(containerEl: HTMLElement): void {
         const autoUploadSection = containerEl.createDiv('mediaflowz-auto-upload-section');
         
-        // Description de la fonctionnalité
-        autoUploadSection.createEl('p', { 
-            text: getTranslation('settings.features.autoupload.description'),
-            cls: 'mediaflowz-setting-item-description'
-        });
-
-        // Option pour choisir le service par défaut
-        new Setting(autoUploadSection)
-            .setName(getTranslation('settings.features.autoupload.defaultService'))
-            .setDesc(getTranslation('settings.features.autoupload.defaultService.desc'))
+        // Section de sélection du service
+        const serviceSection = autoUploadSection.createDiv('mediaflowz-service-section');
+        
+        new Setting(serviceSection)
+            .setName(getTranslation('settings.service'))
+            .setDesc(getTranslation('settings.serviceDesc'))
             .addDropdown(dropdown => {
                 // Ajouter une option vide
                 dropdown.addOption('', getTranslation('settings.selectService'));
-                dropdown.addOption('cloudinary', 'Cloudinary');
-                dropdown.addOption('twicpics', 'TwicPics');
-                dropdown.addOption('cloudflare', 'Cloudflare');
-                dropdown.addOption('bunny', 'Bunny.net');
+                
+                // Ajouter les services supportés depuis l'enum
+                Object.values(SupportedService).forEach(service => {
+                    dropdown.addOption(service, service.charAt(0).toUpperCase() + service.slice(1));
+                });
                 
                 // Définir la valeur actuelle
-                dropdown.setValue(this.plugin.settings.service || '');
+                dropdown.setValue(this.plugin.settings.service);
                 
+                // Gérer le changement
                 dropdown.onChange(async (value) => {
-                    await this.updateSettings({
-                        service: value as SupportedService
-                    });
+                    const settingsSection = autoUploadSection.querySelector('.mediaflowz-service-settings-section');
+                    if (settingsSection) {
+                        settingsSection.addClass('fade-out');
+                    }
+
+                    try {
+                        // Réinitialiser tous les services
+                        const newSettings: Partial<typeof this.plugin.settings> = {
+                            service: value as SupportedService | '',
+                            cloudinary: undefined,
+                            twicpics: undefined,
+                            cloudflare: undefined,
+                            bunny: undefined
+                        };
+
+                        // Mettre à jour les paramètres
+                        await this.updateSettings(newSettings);
+                        
+                        // Recharger l'interface
+                        this.display();
+
+                        if (value) {
+                            // Notification
+                            showNotice(
+                                getTranslation('notices.serviceChanged')
+                                    .replace('{service}', value.charAt(0).toUpperCase() + value.slice(1)),
+                                NOTICE_DURATIONS.MEDIUM
+                            );
+                        }
+
+                    } catch (error) {
+                        showNotice(
+                            error instanceof Error ? error.message : getTranslation('errors.unexpectedError'),
+                            NOTICE_DURATIONS.LONG
+                        );
+                    }
                 });
             });
+
+        // Section des paramètres spécifiques au service
+        if (this.plugin.settings.service) {
+            const serviceSettingsSection = autoUploadSection.createDiv('mediaflowz-service-settings-section');
+
+            // Afficher les paramètres selon le service sélectionné
+            switch (this.plugin.settings.service) {
+                case SupportedService.CLOUDINARY:
+                    this.displayCloudinarySettings(serviceSettingsSection);
+                    break;
+                case SupportedService.TWICPICS:
+                    this.displayTwicPicsSettings(serviceSettingsSection);
+                    break;
+                case SupportedService.CLOUDFLARE:
+                    this.displayCloudflareSettings(serviceSettingsSection);
+                    break;
+                case SupportedService.BUNNY:
+                    this.displayBunnySettings(serviceSettingsSection);
+                    break;
+            }
+        }
 
         // Option pour conserver une copie locale
         new Setting(autoUploadSection)
@@ -1145,80 +1131,124 @@ export class MediaFlowzSettingsTab extends PluginSettingTab {
                         }
                     });
                 }));
-    }
-}
 
-class FolderSelectionModal extends Modal {
-    private onSubmit: (folder: string) => void;
-    private folderInput!: TextComponent;
+        // Section des types de médias
+        const mediaTypesSection = autoUploadSection.createDiv('mediaflowz-media-types-section');
+        mediaTypesSection.createEl('h2', { text: getTranslation('settings.mediaTypes.title') });
+        mediaTypesSection.createEl('p', { 
+            text: getTranslation('settings.mediaTypes.desc'),
+            cls: 'mediaflowz-setting-item-description'
+        });
 
-    constructor(app: App, onSubmit: (folder: string) => void) {
-        super(app);
-        this.onSubmit = onSubmit;
-    }
+        // Images
+        if (this.plugin.settings?.enabledMediaTypes) {
+            new Setting(mediaTypesSection)
+                .setName(getTranslation('settings.mediaTypes.images'))
+                .setDesc(getTranslation('settings.mediaTypes.images.desc'))
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.enabledMediaTypes.images)
+                    .onChange(async (value) => {
+                        if (this.plugin.settings?.enabledMediaTypes) {
+                            this.plugin.settings.enabledMediaTypes.images = value;
+                            await this.plugin.saveSettings();
+                        }
+                    })
+                );
 
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
+            // Vidéos
+            new Setting(mediaTypesSection)
+                .setName(getTranslation('settings.mediaTypes.videos'))
+                .setDesc(getTranslation('settings.mediaTypes.videos.desc'))
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.enabledMediaTypes.videos)
+                    .onChange(async (value) => {
+                        if (this.plugin.settings?.enabledMediaTypes) {
+                            this.plugin.settings.enabledMediaTypes.videos = value;
+                            await this.plugin.saveSettings();
+                        }
+                    })
+                );
 
-        contentEl.createEl('h3', { text: getTranslation('settings.bunny.addFolder') });
+                // GIFs
+                new Setting(mediaTypesSection)
+                    .setName(getTranslation('settings.mediaTypes.gifs'))
+                    .setDesc(getTranslation('settings.mediaTypes.gifs.desc'))
+                    .addToggle(toggle => toggle
+                        .setValue(this.plugin.settings.enabledMediaTypes.gifs)
+                        .onChange(async (value) => {
+                            if (this.plugin.settings?.enabledMediaTypes) {
+                                this.plugin.settings.enabledMediaTypes.gifs = value;
+                                await this.plugin.saveSettings();
+                            }
+                        })
+                    );
+        }
 
-        this.folderInput = new TextComponent(contentEl)
-            .setPlaceholder(getTranslation('settings.bunny.folderPath'));
+        // Section des dossiers ignorés
+        const ignoredFoldersSection = mediaTypesSection.createDiv('mediaflowz-ignored-folders-section');
+        ignoredFoldersSection.createEl('h3', { text: getTranslation('settings.ignoredFolders.title') });
+        const ignoredFoldersList = ignoredFoldersSection.createEl('div', { cls: 'mediaflowz-ignored-folders-list' });
 
-        new ButtonComponent(contentEl)
-            .setButtonText(getTranslation('settings.bunny.addZone'))
-            .onClick(() => {
-                const folder = this.folderInput.getValue();
-                if (folder) {
-                    this.onSubmit(folder);
-                    this.close();
-                }
+        if (this.plugin.settings?.ignoredFolders) {
+            this.plugin.settings.ignoredFolders.forEach((folder: string, index: number) => {
+                const folderDiv = ignoredFoldersList.createEl('div', { cls: 'mediaflowz-ignored-folder-item' });
+                
+                new Setting(folderDiv)
+                    .setName(folder)
+                    .addButton(button => button
+                        .setIcon('trash')
+                        .setTooltip(getTranslation('settings.ignoredFolders.remove'))
+                        .onClick(async () => {
+                            if (this.plugin.settings?.ignoredFolders) {
+                                const newIgnoredFolders = [...this.plugin.settings.ignoredFolders];
+                                newIgnoredFolders.splice(index, 1);
+                                await this.updateSettings({
+                                    ignoredFolders: newIgnoredFolders
+                                });
+                                this.display();
+                            }
+                        }));
             });
-    }
+        }
 
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-    }
-}
+        // Bouton pour ajouter un nouveau dossier à ignorer
+        new Setting(ignoredFoldersSection)
+            .setName(getTranslation('settings.ignoredFolders.add'))
+            .setDesc(getTranslation('settings.ignoredFolders.addDesc'))
+            .addButton(button => button
+                .setButtonText(getTranslation('settings.ignoredFolders.select'))
+                .onClick((e: MouseEvent) => {
+                    const menu = new Menu();
+                    
+                    if (this.app?.vault) {
+                        this.buildFolderMenu(menu, this.app.vault.getRoot(), async (folder: TFolder) => {
+                            if (this.plugin.settings?.ignoredFolders && !this.plugin.settings.ignoredFolders.includes(folder.path)) {
+                                const newIgnoredFolders = [...this.plugin.settings.ignoredFolders, folder.path];
+                                await this.updateSettings({
+                                    ignoredFolders: newIgnoredFolders
+                                });
+                                this.display();
+                            }
+                        });
+                    }
 
-class CustomCDNModal extends Modal {
-    private onSubmit: (folder: string, cdn: string) => void;
-    private folderInput!: TextComponent;
-    private cdnInput!: TextComponent;
+                    menu.showAtMouseEvent(e);
+                }));
 
-    constructor(app: App, onSubmit: (folder: string, cdn: string) => void) {
-        super(app);
-        this.onSubmit = onSubmit;
-    }
-
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-
-        contentEl.createEl('h3', { text: getTranslation('settings.bunny.addCustomCDN') });
-
-        this.folderInput = new TextComponent(contentEl)
-            .setPlaceholder(getTranslation('settings.bunny.folderPath'));
-
-        this.cdnInput = new TextComponent(contentEl)
-            .setPlaceholder(getTranslation('settings.bunny.cdnUrl'));
-
-        new ButtonComponent(contentEl)
-            .setButtonText(getTranslation('settings.bunny.addZone'))
-            .onClick(() => {
-                const folder = this.folderInput.getValue();
-                const cdn = this.cdnInput.getValue();
-                if (folder && cdn) {
-                    this.onSubmit(folder, cdn);
-                    this.close();
-                }
-            });
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
+        // Option pour créer un dossier par note
+        if (this.plugin.settings?.ignoredFoldersSettings) {
+            new Setting(ignoredFoldersSection)
+                .setName(getTranslation('settings.ignoredFolders.useNoteFolders'))
+                .setDesc(getTranslation('settings.ignoredFolders.useNoteFolders.desc'))
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.ignoredFoldersSettings.useNoteFolders)
+                    .onChange(async (value) => {
+                        if (this.plugin.settings?.ignoredFoldersSettings) {
+                            this.plugin.settings.ignoredFoldersSettings.useNoteFolders = value;
+                            await this.plugin.saveSettings();
+                        }
+                    })
+                );
+        }
     }
 } 

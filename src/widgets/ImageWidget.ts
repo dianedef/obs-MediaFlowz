@@ -45,8 +45,32 @@ class LocalImageHandler extends ImageHandler {
     }
 
     async delete(): Promise<void> {
-        const service = MediaServiceFactory.getService(this.settingsService.getSettings(), true);
-        await service.delete(this.path);
+        try {
+            // Nettoyer le chemin du fichier
+            let filePath = this.path;
+            if (this.path.startsWith('app://')) {
+                const url = new URL(this.path);
+                const fullPath = decodeURIComponent(url.pathname);
+                // Extraire uniquement le nom du fichier
+                const parts = fullPath.split('/');
+                filePath = parts[parts.length - 1].split('?')[0];
+            }
+
+            console.log('🔍 Tentative de suppression du fichier:', filePath);
+
+            // Chercher le fichier dans le vault
+            const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+            if (!file) {
+                throw new Error(`Le fichier "${filePath}" n'a pas été trouvé dans le vault`);
+            }
+
+            // Supprimer le fichier
+            await this.plugin.app.vault.delete(file);
+            console.log('✅ Fichier supprimé avec succès:', filePath);
+        } catch (error) {
+            console.error('❌ Erreur lors de la suppression:', error);
+            throw error;
+        }
     }
 
     getType(): string {
@@ -271,36 +295,39 @@ class ImageWidget extends WidgetType {
                 text: 'Voir dans l\'explorateur', 
                 onClick: () => {
                     try {
-                        let fileName = this.url;
+                        let filePath = this.url;
                         if (this.url.startsWith('app://')) {
                             const url = new URL(this.url);
                             const fullPath = decodeURIComponent(url.pathname);
-                            const parts = fullPath.split('Dev - Plugin Obsidian/');
-                            fileName = parts[parts.length - 1].split('?')[0];
+                            // Extraire uniquement le nom du fichier comme dans la fonction de suppression
+                            const parts = fullPath.split('/');
+                            filePath = parts[parts.length - 1].split('?')[0];
                         }
 
-                        const activeFile = this.plugin.app.workspace.getActiveFile();
-                        const sourcePath = activeFile ? activeFile.path : '';
-                        const file = ImagePathService.getInstance(this.plugin.app).getImageFile(fileName, sourcePath);
+                        console.log('🔍 Tentative de localisation du fichier:', filePath);
 
+                        // Utiliser la même méthode que pour la suppression
+                        const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+                        
                         if (!file) {
-                            this.showInfoBar('Image introuvable dans le vault', 'error');
+                            new Notice('Image introuvable dans le vault');
                             return;
                         }
 
+                        // Première ouverture de l'explorateur
                         // @ts-ignore
-                        this.plugin.app.vault.adapter.exists(file.path).then(exists => {
-                            if (exists) {
-                                // @ts-ignore
-                                this.plugin.app.showInFolder(file.path);
-                                this.showInfoBar('Fichier localisé dans l\'explorateur', 'info', 2000);
-                            } else {
-                                this.showInfoBar('Fichier introuvable', 'error');
-                            }
-                        });
+                        this.plugin.app.showInFolder(file.path);
+                        
+                        // Forcer l'explorateur au premier plan après un court délai
+                        setTimeout(() => {
+                            // @ts-ignore
+                            this.plugin.app.showInFolder(file.path);
+                        }, 50);
+
+                        new Notice('Fichier localisé dans l\'explorateur');
                     } catch (error) {
                         console.error('Erreur lors de l\'ouverture du dossier:', error);
-                        this.showInfoBar('Erreur lors de l\'ouverture du dossier', 'error');
+                        new Notice('Erreur lors de l\'ouverture du dossier');
                     }
                 },
                 condition: () => this.handler.getType() === 'local'
@@ -514,7 +541,7 @@ class ImageWidget extends WidgetType {
                 },
                 condition: () => {
                     const settings = SettingsService.getInstance().getSettings();
-                    return this.handler.getType() === 'local' && settings.features.autoUpload;
+                    return this.handler.getType() === 'local' && !settings.features.autoUpload;
                 }
             },
             {
@@ -525,13 +552,13 @@ class ImageWidget extends WidgetType {
                 condition: () => true
             },
             {
-                text: 'Télécharger',
+                text: 'Télécharger en local',
                 onClick: async () => {
                     await this.downloadImage();
                 },
                 condition: () => {
                     const settings = SettingsService.getInstance().getSettings();
-                    return this.handler.getType() !== 'local' && settings.features.autoUpload;
+                    return this.handler.getType() !== 'local' && !settings.features.autoUpload;
                 }
             },
             { 
@@ -554,69 +581,76 @@ class ImageWidget extends WidgetType {
                     let linkRemoved = false;
 
                     try {
-                        await this.handler.delete();
-                        fileDeleted = true;
-                    } catch (error) {
-                        console.warn('⚠️ Erreur lors de la suppression du fichier:', error);
-                        if (error instanceof Error && error.message.includes('n\'a pas été trouvé')) {
-                            fileDeleted = true;
+                        if (this.handler.getType() === 'local') {
+                            try {
+                                await this.handler.delete();
+                                fileDeleted = true;
+                                new Notice('Image locale supprimée avec succès');
+                            } catch (error) {
+                                console.warn('⚠️ Erreur lors de la suppression de l\'image locale:', error);
+                                new Notice('L\'image locale n\'a pas pu être supprimée');
+                                if (!(error instanceof Error && error.message.includes('n\'a pas été trouvé'))) {
+                                    return;
+                                }
+                            }
+                        } else {
+                            try {
+                                await this.handler.delete();
+                                fileDeleted = true;
+                                new Notice('Image externe supprimée avec succès');
+                            } catch (error) {
+                                console.warn('⚠️ Erreur lors de la suppression de l\'image externe:', error);
+                                new Notice('L\'image externe n\'a pas pu être supprimée du service distant');
+                            }
                         }
-                    }
 
-                    const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-                    if (view?.editor) {
-                        const content = view.editor.getValue();
-                        
-                        let fileName = this.url;
-                        if (this.url.startsWith('app://')) {
-                            const url = new URL(this.url);
-                            const fullPath = decodeURIComponent(url.pathname);
-                            const parts = fullPath.split('/');
-                            fileName = parts[parts.length - 1].split('?')[0];
-                        }
-
-                        const patterns = FileNameService.getImagePatterns(fileName);
-                        
-                        let bestMatch: { index: number, length: number } | null = null;
-                        let minDistance = Infinity;
-
-                        for (const pattern of Object.values(patterns)) {
-                            const regex = new RegExp(pattern, 'g');
-                            const matches = Array.from(content.matchAll(regex));
+                        // Suppression de la référence dans l'éditeur
+                        const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+                        if (view?.editor) {
+                            const content = view.editor.getValue();
                             
-                            for (const match of matches) {
-                                if (match[0].includes(fileName)) {
-                                    const distance = Math.abs(match.index! - this.startPosition);
-                                    if (distance < minDistance) {
-                                        minDistance = distance;
-                                        bestMatch = { index: match.index!, length: match[0].length };
+                            let fileName = this.url;
+                            if (this.url.startsWith('app://')) {
+                                const url = new URL(this.url);
+                                const fullPath = decodeURIComponent(url.pathname);
+                                const parts = fullPath.split('/');
+                                fileName = parts[parts.length - 1].split('?')[0];
+                            }
+
+                            const patterns = FileNameService.getImagePatterns(fileName);
+                            
+                            let bestMatch: { index: number, length: number } | null = null;
+                            let minDistance = Infinity;
+
+                            for (const pattern of Object.values(patterns)) {
+                                const regex = new RegExp(pattern, 'g');
+                                const matches = Array.from(content.matchAll(regex));
+                                
+                                for (const match of matches) {
+                                    if (match[0].includes(fileName)) {
+                                        const distance = Math.abs(match.index! - this.startPosition);
+                                        if (distance < minDistance) {
+                                            minDistance = distance;
+                                            bestMatch = { index: match.index!, length: match[0].length };
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if (bestMatch) {
-                            const before = content.substring(0, bestMatch.index);
-                            const after = content.substring(bestMatch.index + bestMatch.length);
-                            view.editor.setValue(before + after);
-                            linkRemoved = true;
-                        }
-                    }
-
-                    if (linkRemoved) {
-                        if (!fileDeleted) {
-                            new Notice('Référence de l\'image supprimée du document');
-                        } else {
-                            if (this.handler.getType() === 'local') {
-                                new Notice('Image supprimée du stockage local');
+                            if (bestMatch) {
+                                const before = content.substring(0, bestMatch.index);
+                                const after = content.substring(bestMatch.index + bestMatch.length);
+                                view.editor.setValue(before + after);
+                                linkRemoved = true;
+                                new Notice('Référence supprimée du document');
                             } else {
-                                new Notice('Image externe supprimée du document');
+                                new Notice('Impossible de trouver la référence à supprimer');
                             }
                         }
-                        new Notice('Lien supprimé du document', 2000);
-                    } else {
-                        const errorMessage = 'Impossible de supprimer la référence de l\'image du document';
-                        this.showInfoBar(errorMessage, 'error');
+
+                    } catch (error) {
+                        console.error('❌ Erreur lors de la suppression:', error);
+                        new Notice('Une erreur est survenue lors de la suppression');
                     }
                 },
                 condition: () => true
@@ -955,143 +989,171 @@ class ImageWidget extends WidgetType {
         
         // Préparer la mise à jour en une seule fois
         if (isExternal) {
-            const baseUrl = imagePathService.cleanPath(this.url);
+            const baseUrl = this.url; // Utiliser l'URL complète
+            console.log('🔍 URL de base:', baseUrl);
             
-            // Créer une regex qui match le format exact sans essayer d'échapper l'URL
-            const pattern = `\\[([^\\]|]*?)(?:\\|\\d+)?\\]\\([^)]*\\)`;
-            const regex = new RegExp(pattern, 'g');
+            // D'abord, chercher dans le format wiki
+            const wikiPattern = `\\[\\[${this.escapeRegExp(baseUrl)}(?:\\|\\d+)?\\]\\]`;
+            console.log('🔍 Pattern wiki:', wikiPattern);
+            const wikiRegex = new RegExp(wikiPattern, 'g');
             
-            console.log('🔍 Recherche avec pattern:', pattern);
-            
-            // Trouver toutes les occurrences dans le document
-            let match;
-            let lastMatch = null;
+            let bestMatch = null;
             let bestMatchDistance = Infinity;
+            let match;
             
-            // Nettoyer l'URL de base pour la comparaison
-            const cleanBaseUrl = this.normalizeUrl(baseUrl);
-            console.log('🧹 URL de base nettoyée:', cleanBaseUrl);
-            
-            while ((match = regex.exec(content)) !== null) {
-                // Extraire l'URL du match
-                const urlMatch = match[0].match(/\]\((.*?)\)/);
-                if (urlMatch) {
-                    const matchedUrl = this.normalizeUrl(urlMatch[1]);
-                    console.log('🔍 Comparaison URLs:', {
-                        matched: matchedUrl,
-                        base: cleanBaseUrl,
-                        isEqual: matchedUrl === cleanBaseUrl
-                    });
-                    
-                    if (matchedUrl === cleanBaseUrl) {
-                        const distance = Math.abs(match.index - this.startPosition);
-                        if (distance < bestMatchDistance) {
-                            bestMatchDistance = distance;
-                            lastMatch = match;
-                        }
-                    }
+            while ((match = wikiRegex.exec(content)) !== null) {
+                const distance = Math.abs(match.index - this.startPosition);
+                if (distance < bestMatchDistance) {
+                    bestMatchDistance = distance;
+                    bestMatch = match;
                 }
             }
             
-            if (lastMatch) {
-                console.log('📝 Mise à jour du lien:', {
-                    original: lastMatch[0],
+            if (bestMatch) {
+                console.log('📝 Mise à jour du lien wiki:', {
+                    original: bestMatch[0],
                     baseUrl,
                     width
                 });
 
                 const start = view.editor.posToOffset({ 
-                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
-                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
+                    line: content.substring(0, bestMatch.index).split('\n').length - 1,
+                    ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
                 });
-                const end = start + lastMatch[0].length;
+                const end = start + bestMatch[0].length;
                 
-                // Extraire l'URL complète du match original
-                const urlMatch = lastMatch[0].match(/\]\((.*?)\)/);
-                const originalUrl = urlMatch ? urlMatch[1] : baseUrl;
+                // Préserver l'URL complète avec ses paramètres
+                const replacement = `[[${baseUrl}|${width}]]`;
                 
-                const altText = lastMatch[1].split('|')[0] || ''; // Extraire le texte sans la taille
-                const replacement = `[${altText}|${width}](${originalUrl})`;
+                console.log('📝 Remplacement wiki:', {
+                    from: bestMatch[0],
+                    to: replacement
+                });
+                
+                this.applyReplacement(view, start, end, replacement, width, scrollInfo);
+                return;
+            }
+            
+            // Si pas trouvé en format wiki, chercher en format markdown
+            const pattern = `\\[([^\\]|]*?)(?:\\|\\d+)?\\]\\(${this.escapeRegExp(baseUrl)}\\)`;
+            const regex = new RegExp(pattern, 'g');
+            
+            console.log('🔍 Recherche avec pattern:', pattern);
+            
+            bestMatch = null;
+            bestMatchDistance = Infinity;
+            
+            while ((match = regex.exec(content)) !== null) {
+                const distance = Math.abs(match.index - this.startPosition);
+                if (distance < bestMatchDistance) {
+                    bestMatchDistance = distance;
+                    bestMatch = match;
+                }
+            }
+            
+            if (bestMatch) {
+                console.log('📝 Mise à jour du lien:', {
+                    original: bestMatch[0],
+                    baseUrl,
+                    width
+                });
+
+                const start = view.editor.posToOffset({ 
+                    line: content.substring(0, bestMatch.index).split('\n').length - 1,
+                    ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
+                });
+                const end = start + bestMatch[0].length;
+                
+                const altText = bestMatch[1].split('|')[0] || '';
+                const replacement = `[${altText}|${width}](${baseUrl})`;
                 
                 console.log('📝 Remplacement:', {
-                    from: lastMatch[0],
+                    from: bestMatch[0],
                     to: replacement
                 });
 
-                // Première frame : faire les modifications
-                requestAnimationFrame(() => {
-                    // Mettre à jour le lien et l'image en même temps
-                    if (this.imageElement) {
-                        this.imageElement.style.width = `${width}px`;
-                        this.imageElement.style.height = 'auto';
-                    }
-                    
-                    view.editor.replaceRange(replacement, 
-                        view.editor.offsetToPos(start),
-                        view.editor.offsetToPos(end)
-                    );
-
-                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
-                    requestAnimationFrame(() => {
-                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
-                    });
-
-                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
-                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
-                        newSize: parseInt(width),
-                        markdown: replacement
-                    });
-                });
+                this.applyReplacement(view, start, end, replacement, width, scrollInfo);
             } else {
                 console.warn('⚠️ Aucune correspondance trouvée pour:', baseUrl);
             }
         } else {
-            const basePath = imagePathService.cleanPath(oldLink);
-            const escapedPath = this.escapeRegExp(basePath);
-            const wikiPattern = `\\[\\[${escapedPath}\\|(\\d+)\\]\\]`;
+            // Pour les images locales, extraire le nom du fichier
+            let fileName = this.url;
+            if (this.url.startsWith('app://')) {
+                const url = new URL(this.url);
+                const fullPath = decodeURIComponent(url.pathname);
+                const parts = fullPath.split('/');
+                fileName = parts[parts.length - 1].split('?')[0];
+            }
+            
+            console.log('🔍 Recherche du fichier local:', fileName);
+            
+            // Chercher le pattern wiki avec le nom du fichier
+            const wikiPattern = `\\[\\[${this.escapeRegExp(fileName)}(?:\\|\\d+)?\\]\\]`;
             const wikiRegex = new RegExp(wikiPattern, 'g');
             
-            // Trouver toutes les occurrences dans le document
+            let bestMatch = null;
+            let bestMatchDistance = Infinity;
             let match;
-            let lastMatch = null;
+            
             while ((match = wikiRegex.exec(content)) !== null) {
-                lastMatch = match;
+                const distance = Math.abs(match.index - this.startPosition);
+                if (distance < bestMatchDistance) {
+                    bestMatchDistance = distance;
+                    bestMatch = match;
+                }
             }
             
-            if (lastMatch) {
+            if (bestMatch) {
+                console.log('📝 Mise à jour du lien wiki local:', {
+                    original: bestMatch[0],
+                    fileName,
+                    width
+                });
+
                 const start = view.editor.posToOffset({ 
-                    line: content.substring(0, lastMatch.index).split('\n').length - 1,
-                    ch: lastMatch.index - content.lastIndexOf('\n', lastMatch.index) - 1
+                    line: content.substring(0, bestMatch.index).split('\n').length - 1,
+                    ch: bestMatch.index - content.lastIndexOf('\n', bestMatch.index) - 1
                 });
-                const end = start + lastMatch[0].length;
-                const replacement = `[[${basePath}|${width}]]`;
+                const end = start + bestMatch[0].length;
+                const replacement = `[[${fileName}|${width}]]`;
                 
-                // Première frame : faire les modifications
-                requestAnimationFrame(() => {
-                    // Mettre à jour le lien et l'image en même temps
-                    if (this.imageElement) {
-                        this.imageElement.style.width = `${width}px`;
-                        this.imageElement.style.height = 'auto';
-                    }
-                    
-                    view.editor.replaceRange(replacement, 
-                        view.editor.offsetToPos(start),
-                        view.editor.offsetToPos(end)
-                    );
-
-                    // Deuxième frame : restaurer la position après que le DOM soit mis à jour
-                    requestAnimationFrame(() => {
-                        view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
-                    });
-
-                    EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
-                        oldSize: parseInt(oldLink.split('|')[1] || '0'),
-                        newSize: parseInt(width),
-                        markdown: replacement
-                    });
+                console.log('📝 Remplacement wiki local:', {
+                    from: bestMatch[0],
+                    to: replacement
                 });
+                
+                this.applyReplacement(view, start, end, replacement, width, scrollInfo);
+            } else {
+                console.warn('⚠️ Aucune correspondance trouvée pour le fichier local:', fileName);
             }
         }
+    }
+
+    private applyReplacement(view: any, start: number, end: number, replacement: string, width: string, scrollInfo: any) {
+        requestAnimationFrame(() => {
+            // Mettre à jour le lien et l'image en même temps
+            if (this.imageElement) {
+                this.imageElement.style.width = `${width}px`;
+                this.imageElement.style.height = 'auto';
+            }
+            
+            view.editor.replaceRange(replacement, 
+                view.editor.offsetToPos(start),
+                view.editor.offsetToPos(end)
+            );
+
+            // Deuxième frame : restaurer la position après que le DOM soit mis à jour
+            requestAnimationFrame(() => {
+                view.editor.scrollTo(scrollInfo.left, scrollInfo.top);
+            });
+
+            EventBusService.getInstance().emit(EventName.IMAGE_RESIZED, {
+                oldSize: parseInt(this.mediaInfo.originalUrl.split('|')[1] || '0'),
+                newSize: parseInt(width),
+                markdown: replacement
+            });
+        });
     }
 
     private updateImageUrl(oldLink: string, width: number): string {
@@ -1123,7 +1185,24 @@ class ImageWidget extends WidgetType {
                 const cleanBaseUrl = this.normalizeUrl(baseUrl);
                 console.log('🧹 URL nettoyée pour la recherche:', cleanBaseUrl);
                 
-                // Chercher le pattern [texte|taille](url)
+                // Chercher d'abord dans le format wiki externe
+                const wikiPattern = `\\[\\[${this.escapeRegExp(baseUrl)}\\|(\\d+)\\]\\]`;
+                const wikiMatch = content.match(new RegExp(wikiPattern));
+                
+                if (wikiMatch) {
+                    const width = parseInt(wikiMatch[1]);
+                    console.log('📏 Taille wiki trouvée:', width);
+                    
+                    // Convertir les pixels en position de slider
+                    for (const [position, pixels] of Object.entries(this.sizePixels)) {
+                        if (width <= pixels) {
+                            return position;
+                        }
+                    }
+                    return '5';
+                }
+                
+                // Si pas trouvé, chercher dans le format markdown standard
                 const pattern = `\\[([^\\]|]*?)(?:\\|(\\d+))?\\]\\([^)]*\\)`;
                 const regex = new RegExp(pattern, 'g');
                 
@@ -1232,12 +1311,12 @@ class ImageWidget extends WidgetType {
             
             // Déterminer le dossier de destination
             let targetFolder = '';
-            if (settings.features.autoUpload) {
-                // Si autoUpload est activé, utiliser le dossier configuré
-                targetFolder = settings.features.uploadFolder;
-            } else {
-                // Sinon, utiliser le dossier de la note active ou le dossier par défaut d'Obsidian
+            if (!settings.features.autoUpload) {
+                // Si autoUpload est désactivé, utiliser le dossier de la note active ou le dossier par défaut d'Obsidian
                 targetFolder = activeFile?.parent?.path || 'assets';
+            } else {
+                // Sinon, utiliser le dossier configuré pour l'upload cloud
+                targetFolder = settings.features.uploadFolder;
             }
 
             // S'assurer que le dossier existe
@@ -1356,7 +1435,19 @@ class ImageWidget extends WidgetType {
             // Normaliser les paramètres de requête
             const urlObj = new URL(cleaned);
             const searchParams = new URLSearchParams(urlObj.search);
+            
+            // Conserver les paramètres importants mais supprimer ceux qui peuvent varier
+            const paramsToKeep = ['url'];  // Garder le paramètre url pour les URLs comme _next/image
+            const paramsToRemove = ['w', 'width', 'size', 'q', 'quality'];  // Paramètres à ignorer
+            
+            // Supprimer les paramètres qui peuvent varier
+            for (const param of paramsToRemove) {
+                searchParams.delete(param);
+            }
+            
+            // Trier les paramètres restants
             const sortedParams = Array.from(searchParams.entries())
+                .filter(([key]) => paramsToKeep.includes(key) || !paramsToRemove.includes(key))
                 .sort(([a], [b]) => a.localeCompare(b));
             
             // Reconstruire l'URL avec les paramètres triés

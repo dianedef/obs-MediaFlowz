@@ -103,9 +103,11 @@ export class MediaToolbarDecorator implements PluginValue {
                 if (start < lastPos) continue;
 
                 const parts = wikiMatch[1].split('|');
+                const url = parts[0];
                 const linkInfo = {
-                    url: parts[0],
-                    altText: parts[1] || ''
+                    url: url.startsWith('http') ? url : parts[0],
+                    altText: parts[1] || '',
+                    size: parts[1]?.match(/^\d+$/) ? parts[1] : ''
                 };
 
                 builder.add(
@@ -114,7 +116,7 @@ export class MediaToolbarDecorator implements PluginValue {
                     Decoration.widget({
                         widget: new ImageWidget(this.plugin, {
                             originalUrl: linkInfo.url,
-                            resolvedUrl: this.imagePathService.getFullPath(
+                            resolvedUrl: url.startsWith('http') ? url : this.imagePathService.getFullPath(
                                 linkInfo.url,
                                 this.plugin.app.workspace.getActiveFile()?.path || ''
                             ),

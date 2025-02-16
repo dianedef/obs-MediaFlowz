@@ -59,12 +59,16 @@ const fr = {
 
     // Paramètres Cloudinary
     'settings.cloudinary.title': 'Configuration Cloudinary',
-    'settings.cloudinary.description': 'Cloudinary est un service de gestion de médias qui offre des fonctionnalités avancées de transformation d\'images et de vidéos.\n\n' +
-        'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :\n' +
-        '• Uploader l\'image vers votre compte Cloudinary\n' +
+    'settings.cloudinary.description': 'Cloudinary est un service de gestion de médias qui offre des fonctionnalités avancées de transformation d\'images et de vidéos.',
+    'settings.cloudinary.description.features': 'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :',
+    'settings.cloudinary.description.features.list': '• Uploader l\'image vers votre compte Cloudinary\n' +
         '• Insérer le lien de l\'image optimisée dans votre note\n' +
-        '• Appliquer automatiquement les transformations configurées\n\n' +
-        'Vos images seront servies via le CDN mondial de Cloudinary pour des performances optimales.',
+        '• Appliquer automatiquement les transformations configurées',
+    'settings.cloudinary.description.cdn': 'Vos images seront servies via le CDN mondial de Cloudinary pour des performances optimales.',
+    'settings.cloudinary.setup.title': 'Pour configurer Cloudinary :',
+    'settings.cloudinary.setup.step1': 'Créez un compte sur <a href="https://cloudinary.com">cloudinary.com</a>',
+    'settings.cloudinary.setup.step2': 'Accédez à votre Dashboard',
+    'settings.cloudinary.setup.step3': 'Récupérez vos identifiants dans l\'onglet "Account Details"',
     'settings.cloudinary.cloudName': 'Nom du cloud',
     'settings.cloudinary.cloudNameDesc': 'Le nom de votre cloud Cloudinary (ex: my-cloud)',
     'settings.cloudinary.uploadPreset': 'Preset d\'upload',
@@ -72,12 +76,16 @@ const fr = {
 
     // Paramètres TwicPics
     'settings.twicpics.title': 'Configuration TwicPics',
-    'settings.twicpics.description': 'TwicPics est une solution d\'optimisation d\'images en temps réel.\n\n' +
-        'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :\n' +
-        '• Uploader l\'image vers votre compte TwicPics\n' +
+    'settings.twicpics.description': 'TwicPics est une solution d\'optimisation d\'images en temps réel.',
+    'settings.twicpics.description.features': 'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :',
+    'settings.twicpics.description.features.list': '• Uploader l\'image vers votre compte TwicPics\n' +
         '• Insérer le lien de l\'image optimisée dans votre note\n' +
-        '• Appliquer automatiquement les transformations configurées\n\n' +
-        'TwicPics optimise et sert vos images en temps réel selon le contexte de visualisation.',
+        '• Appliquer automatiquement les transformations configurées',
+    'settings.twicpics.description.realtime': 'TwicPics optimise et sert vos images en temps réel selon le contexte de visualisation.',
+    'settings.twicpics.setup.title': 'Pour configurer TwicPics :',
+    'settings.twicpics.setup.step1': 'Créez un compte sur <a href="https://twicpics.com">twicpics.com</a>',
+    'settings.twicpics.setup.step2': 'Créez un nouveau workspace',
+    'settings.twicpics.setup.step3': 'Configurez votre domaine et récupérez votre clé API',
     'settings.twicpics.domain': 'Domaine',
     'settings.twicpics.domainDesc': 'Votre domaine TwicPics (ex: your-workspace.twicpics.com)',
     'settings.twicpics.path': 'Chemin',
@@ -87,19 +95,24 @@ const fr = {
 
     // Paramètres Cloudflare
     'settings.cloudflare.title': 'Configuration Cloudflare',
-    'settings.cloudflare.description': 'Cloudflare Images et Stream permettent de stocker et servir vos médias via le réseau CDN mondial de Cloudflare.\n\n' +
-        'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :\n' +
-        '• Uploader l\'image vers votre compte Cloudflare\n' +
+    'settings.cloudflare.description': 'Cloudflare Images et Stream permettent de stocker et servir vos médias via le réseau CDN mondial de Cloudflare.',
+    'settings.cloudflare.description.features': 'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :',
+    'settings.cloudflare.description.features.list': '• Uploader l\'image vers votre compte Cloudflare\n' +
         '• Insérer le lien de l\'image optimisée dans votre note\n' +
-        '• Servir l\'image via le CDN de Cloudflare\n\n' +
-        'Vos images sont automatiquement optimisées et protégées par le réseau Cloudflare.\n\n' +
-        'Note : Cloudflare Images n\'utilise pas de buckets comme S3. Pour organiser vos images par projet :\n' +
-        '• Utilisez des variants différents (ex: obsidian/blog, obsidian/docs)\n' +
-        '• Ou configurez des domaines personnalisés différents par projet\n\n' +
-        'Note sur R2 : R2 est le service de stockage objet de Cloudflare, compatible S3. Il n\'a pas d\'interface graphique dédiée, mais vous pouvez :\n' +
-        '• Utiliser le dashboard Cloudflare (interface basique)\n' +
+        '• Servir l\'image via le CDN de Cloudflare',
+    'settings.cloudflare.description.protection': 'Vos images sont automatiquement optimisées et protégées par le réseau Cloudflare.',
+    'settings.cloudflare.description.organization': 'Note : Cloudflare Images n\'utilise pas de buckets comme S3. Pour organiser vos images par projet :',
+    'settings.cloudflare.description.organization.list': '• Utilisez des variants différents (ex: obsidian/blog, obsidian/docs)\n' +
+        '• Ou configurez des domaines personnalisés différents par projet',
+    'settings.cloudflare.description.r2': 'Note sur R2 : R2 est le service de stockage objet de Cloudflare, compatible S3. Il n\'a pas d\'interface graphique dédiée, mais vous pouvez :',
+    'settings.cloudflare.description.r2.list': '• Utiliser le dashboard Cloudflare (interface basique)\n' +
         '• Utiliser des outils compatibles S3 (comme Cyberduck, S3 Browser)\n' +
         '• Accéder via l\'API R2 ou S3',
+    'settings.cloudflare.setup.title': 'Pour configurer Cloudflare Images :',
+    'settings.cloudflare.setup.step1': 'Connectez-vous à votre compte Cloudflare',
+    'settings.cloudflare.setup.step2': 'Activez Cloudflare Images',
+    'settings.cloudflare.setup.step3': 'Créez un token API avec les permissions Images',
+    'settings.cloudflare.setup.step4': 'Notez votre Account ID et le hash de livraison',
     'settings.cloudflare.accountId': 'Account ID',
     'settings.cloudflare.accountIdDesc': 'Votre identifiant de compte Cloudflare (visible dans l\'URL du dashboard)',
     'settings.cloudflare.deliveryHash': 'Hash de livraison',
@@ -191,6 +204,7 @@ const fr = {
     'settings.imageSize.title': 'Taille des images',
     'settings.imageSize.default': 'Taille par défaut',
     'settings.imageSize.default.desc': 'Taille utilisée lors de l\'insertion d\'une image',
+    'settings.imageSize.extraSmall': 'Très petite (160px)',
     'settings.imageSize.small': 'Petite (320px)',
     'settings.imageSize.medium': 'Moyenne (640px)',
     'settings.imageSize.large': 'Grande (1280px)',
@@ -253,16 +267,29 @@ const fr = {
 
     // Paramètres Bunny.net
     'settings.bunny.title': 'Configuration Bunny.net',
-    'settings.bunny.description': 'Configurez vos zones de stockage Bunny.net',
+    'settings.bunny.description': 'Bunny.net est un service CDN qui offre des fonctionnalités de stockage et de diffusion de médias.',
+    'settings.bunny.description.features': 'Lorsque vous collez une image depuis le presse-papier dans votre note Obsidian, le plugin va :',
+    'settings.bunny.description.features.list': '• Uploader l\'image vers votre zone de stockage Bunny.net\n' +
+        '• Insérer le lien de l\'image optimisée dans votre note\n' +
+        '• Servir l\'image via le CDN Bunny.net',
+    'settings.bunny.description.cdn': 'Vos images sont automatiquement distribuées via le réseau mondial de Bunny.net pour des performances optimales.',
+    'settings.bunny.description.advantages': 'Bunny.net offre plusieurs avantages :',
+    'settings.bunny.description.advantages.list': '• Stockage flexible avec les Storage Zones\n' +
+        '• CDN performant avec les Pull Zones\n' +
+        '• Possibilité d\'utiliser des domaines personnalisés\n' +
+        '• Tarification simple et transparente',
+    'settings.bunny.setup.title': 'Pour configurer Bunny.net :',
+    'settings.bunny.setup.step1': 'Créez un compte sur <a href="https://bunny.net">bunny.net</a>',
+    'settings.bunny.setup.step2': 'Créez une nouvelle Storage Zone',
+    'settings.bunny.setup.step3': 'Configurez une Pull Zone associée',
+    'settings.bunny.setup.step4': 'Notez la clé d\'accès FTP/API et l\'URL de la Pull Zone',
+    'settings.bunny.setup.note': 'Vous pouvez configurer plusieurs zones de stockage et leur associer des dossiers spécifiques.',
     'settings.bunny.vault': 'Vault entier',
     'settings.bunny.vault.desc': 'Utiliser cette zone pour tout le vault',
     'settings.bunny.storageZones': 'Zones de stockage',
     'settings.bunny.storageZonesDesc': 'Configurez différentes zones de stockage pour vos projets',
-    'settings.bunny.storageZoneName': 'Nom de la zone',
-    'settings.bunny.storageZoneNameDesc': 'Le nom de votre zone de stockage (Storage Zone Name)',
     'settings.bunny.addStorageZone': 'Ajouter une zone de stockage',
-    'settings.bunny.zoneName': 'Nom de la zone',
-    'settings.bunny.zoneNameDesc': 'Nom de la zone de stockage Bunny',
+    'settings.bunny.storageZoneName': 'Nom de la zone',
     'settings.bunny.accessKey': 'Clé d\'accès',
     'settings.bunny.accessKeyDesc': 'La clé d\'accès FTP/API de la zone (trouvable dans FTP & API Access)',
     'settings.bunny.pullZoneUrl': 'PullZone URL',
@@ -279,6 +306,8 @@ const fr = {
     'settings.bunny.folderPath': 'Chemin du dossier',
     'settings.bunny.cdnUrl': 'URL du CDN',
     'settings.bunny.addCustomCDN': 'Ajouter un CDN personnalisé',
+    'settings.bunny.zoneName': 'Zone Name',
+    'settings.bunny.zoneNameDesc': 'Bunny storage zone name',
 };
 
 const en = {
@@ -303,12 +332,16 @@ const en = {
 
     // Cloudinary settings
     'settings.cloudinary.title': 'Cloudinary Configuration',
-    'settings.cloudinary.description': 'Cloudinary is a media management service offering advanced image and video transformation features.\n\n' +
-        'When you paste an image from the clipboard into your Obsidian note, the plugin will:\n' +
-        '• Upload the image to your Cloudinary account\n' +
-        '• Insert the optimized image link in your note\n' +
-        '• Automatically apply configured transformations\n\n' +
-        'Your images will be served through Cloudinary\'s global CDN for optimal performance.',
+    'settings.cloudinary.description': 'Cloudinary is a media management service offering advanced image and video transformation features.',
+    'settings.cloudinary.description.features': 'When you paste an image from the clipboard into your Obsidian note, the plugin will :',
+    'settings.cloudinary.description.features.list': '• Upload the image to your Cloudinary account\n' +
+        '• Insert the optimized image link into your note\n' +
+        '• Apply automatically configured transformations',
+    'settings.cloudinary.description.cdn': 'Your images will be served via Cloudinary\'s global CDN for optimal performance.',
+    'settings.cloudinary.setup.title': 'For configuring Cloudinary:',
+    'settings.cloudinary.setup.step1': 'Create an account on <a href="https://cloudinary.com">cloudinary.com</a>',
+    'settings.cloudinary.setup.step2': 'Access your Dashboard',
+    'settings.cloudinary.setup.step3': 'Retrieve your credentials from the "Account Details" tab',
     'settings.cloudinary.cloudName': 'Cloud name',
     'settings.cloudinary.cloudNameDesc': 'Your cloud name (e.g. my-cloud)',
     'settings.cloudinary.uploadPreset': 'Upload preset',
@@ -316,12 +349,16 @@ const en = {
 
     // TwicPics settings
     'settings.twicpics.title': 'TwicPics Configuration',
-    'settings.twicpics.description': 'TwicPics is a real-time image optimization solution.\n\n' +
-        'When you paste an image from the clipboard into your Obsidian note, the plugin will:\n' +
-        '• Upload the image to your TwicPics account\n' +
-        '• Insert the optimized image link in your note\n' +
-        '• Automatically apply configured transformations\n\n' +
-        'TwicPics optimizes and serves your images in real-time based on the viewing context.',
+    'settings.twicpics.description': 'TwicPics is a real-time image optimization solution.',
+    'settings.twicpics.description.features': 'When you paste an image from the clipboard into your Obsidian note, the plugin will :',
+    'settings.twicpics.description.features.list': '• Upload the image to your TwicPics account\n' +
+        '• Insert the optimized image link into your note\n' +
+        '• Apply automatically configured transformations',
+    'settings.twicpics.description.realtime': 'TwicPics optimizes and serves your images in real-time based on the viewing context.',
+    'settings.twicpics.setup.title': 'For configuring TwicPics:',
+    'settings.twicpics.setup.step1': 'Create an account on <a href="https://twicpics.com">twicpics.com</a>',
+    'settings.twicpics.setup.step2': 'Create a new workspace',
+    'settings.twicpics.setup.step3': 'Configure your domain and retrieve your API key',
     'settings.twicpics.domain': 'Domain',
     'settings.twicpics.domainDesc': 'Your TwicPics domain (e.g. your-workspace.twicpics.com)',
     'settings.twicpics.path': 'Path',
@@ -331,19 +368,24 @@ const en = {
 
     // Cloudflare settings
     'settings.cloudflare.title': 'Cloudflare Configuration',
-    'settings.cloudflare.description': 'Cloudflare Images and Stream allow you to store and serve your media through Cloudflare\'s global CDN.\n\n' +
-        'When you paste an image from the clipboard into your Obsidian note, the plugin will:\n' +
-        '• Upload the image to your Cloudflare account\n' +
-        '• Insert the optimized image link in your note\n' +
-        '• Serve the image through Cloudflare\'s CDN\n\n' +
-        'Your images are automatically optimized and protected by the Cloudflare network.\n\n' +
-        'Note: Cloudflare Images doesn\'t use buckets like S3. To organize your images by project:\n' +
-        '• Use different variants (e.g. obsidian/blog, obsidian/docs)\n' +
-        '• Or configure different custom domains per project\n\n' +
-        'Note about R2: R2 is Cloudflare\'s object storage service, S3-compatible. It doesn\'t have a dedicated GUI, but you can:\n' +
-        '• Use the Cloudflare dashboard (basic interface)\n' +
-        '• Use S3-compatible tools (like Cyberduck, S3 Browser)\n' +
+    'settings.cloudflare.description': 'Cloudflare Images and Stream allow you to store and serve your media through Cloudflare\'s global CDN.',
+    'settings.cloudflare.description.features': 'When you paste an image from the clipboard into your Obsidian note, the plugin will :',
+    'settings.cloudflare.description.features.list': '• Upload the image to your Cloudflare account\n' +
+        '• Insert the optimized image link into your note\n' +
+        '• Serve the image via Cloudflare\'s CDN',
+    'settings.cloudflare.description.protection': 'Your images are automatically optimized and protected by the Cloudflare network.',
+    'settings.cloudflare.description.organization': 'Note: Cloudflare Images does not use buckets like S3. To organize your images by project:',
+    'settings.cloudflare.description.organization.list': '• Use different variants (ex: obsidian/blog, obsidian/docs)\n' +
+        '• Or configure different custom domains per project',
+    'settings.cloudflare.description.r2': 'Note on R2: R2 is Cloudflare\'s object storage service, compatible with S3. It does not have a dedicated graphical interface, but you can :',
+    'settings.cloudflare.description.r2.list': '• Use the Cloudflare dashboard (basic interface)\n' +
+        '• Use compatible S3 tools (like Cyberduck, S3 Browser)\n' +
         '• Access via R2 or S3 API',
+    'settings.cloudflare.setup.title': 'For configuring Cloudflare Images:',
+    'settings.cloudflare.setup.step1': 'Log in to your Cloudflare account',
+    'settings.cloudflare.setup.step2': 'Enable Cloudflare Images',
+    'settings.cloudflare.setup.step3': 'Create an API token with Images permissions',
+    'settings.cloudflare.setup.step4': 'Note your Account ID and delivery hash',
     'settings.cloudflare.accountId': 'Account ID',
     'settings.cloudflare.accountIdDesc': 'Your Cloudflare account identifier.',
     'settings.cloudflare.deliveryHash': 'Delivery Hash',
@@ -438,6 +480,7 @@ const en = {
     'settings.imageSize.title': 'Image Size',
     'settings.imageSize.default': 'Default size',
     'settings.imageSize.default.desc': 'Size used when inserting an image',
+    'settings.imageSize.extraSmall': 'Extra Small (160px)',
     'settings.imageSize.small': 'Small (320px)',
     'settings.imageSize.medium': 'Medium (640px)',
     'settings.imageSize.large': 'Large (1280px)',
@@ -500,14 +543,29 @@ const en = {
 
     // Bunny.net settings
     'settings.bunny.title': 'Bunny.net Configuration',
-    'settings.bunny.description': 'Configure your Bunny.net storage zones',
+    'settings.bunny.description': 'Bunny.net is a CDN service offering storage and media diffusion features.',
+    'settings.bunny.description.features': 'When you paste an image from the clipboard into your Obsidian note, the plugin will :',
+    'settings.bunny.description.features.list': '• Upload the image to your Bunny.net storage zone\n' +
+        '• Insert the optimized image link into your note\n' +
+        '• Serve the image via Bunny.net CDN',
+    'settings.bunny.description.cdn': 'Your images are automatically distributed via Bunny.net\'s global network for optimal performance.',
+    'settings.bunny.description.advantages': 'Bunny.net offers several advantages :',
+    'settings.bunny.description.advantages.list': '• Flexible storage with Storage Zones\n' +
+        '• Performant CDN with Pull Zones\n' +
+        '• Ability to use custom domains\n' +
+        '• Simple and transparent pricing',
+    'settings.bunny.setup.title': 'For configuring Bunny.net:',
+    'settings.bunny.setup.step1': 'Create an account on <a href="https://bunny.net">bunny.net</a>',
+    'settings.bunny.setup.step2': 'Create a new Storage Zone',
+    'settings.bunny.setup.step3': 'Configure an associated Pull Zone',
+    'settings.bunny.setup.step4': 'Note the zone\'s FTP/API access key and Pull Zone URL',
+    'settings.bunny.setup.note': 'You can configure multiple storage zones and associate them with specific folders.',
     'settings.bunny.vault': 'Entire Vault',
     'settings.bunny.vault.desc': 'Use this zone for the entire vault',
     'settings.bunny.storageZones': 'Storage Zones',
     'settings.bunny.storageZonesDesc': 'Configure different storage zones for your projects',
     'settings.bunny.addStorageZone': 'Add Storage Zone',
     'settings.bunny.storageZoneName': 'Storage Zone Name',
-    'settings.bunny.storageZoneNameDesc': 'Bunny storage zone name',
     'settings.bunny.accessKey': 'Access Key',
     'settings.bunny.accessKeyDesc': 'The zone\'s FTP/API access key (found in FTP & API Access)',
     'settings.bunny.pullZoneUrl': 'PullZoneURL',
