@@ -1,23 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CloudinaryService } from '../../src/services/CloudinaryService';
-import { EventBusService } from '../../src/services/EventBusService';
-import { ErrorService, ErrorType } from '../../src/services/ErrorService';
-import { EventName } from '../../src/types/events';
-import { IPluginSettings } from '../../src/types/settings';
+import { CloudinaryService } from '@/services/CloudinaryService';
+import { EventName } from '@/types/events';
+import { ErrorType } from '../mocks/services/ErrorService.mock';
 import { http, HttpResponse } from 'msw';
 import { server } from '../setup';
-import { networkErrorHandler } from '../mocks/api/cloudinary.handlers';
-
-// Mock Obsidian
-vi.mock('obsidian', () => ({
-    Notice: vi.fn(),
-    moment: {
-        locale: () => 'fr'
-    }
-}));
 
 // Mock des services
-vi.mock('../../src/services/ErrorService', () => ({
+vi.mock('@/services/ErrorService', () => ({
     ErrorService: {
         getInstance: vi.fn().mockReturnValue({
             handleError: vi.fn(),
@@ -27,22 +16,21 @@ vi.mock('../../src/services/ErrorService', () => ({
     ErrorType
 }));
 
-vi.mock('../../src/services/EventBusService', () => ({
+vi.mock('@/services/EventBusService', () => ({
     EventBusService: {
         getInstance: vi.fn().mockReturnValue({
             emit: vi.fn(),
-            on: vi.fn(),
-            off: vi.fn()
+            on: vi.fn()
         })
     }
 }));
 
 describe('CloudinaryService', () => {
     let cloudinaryService: CloudinaryService;
-    let eventBus: ReturnType<typeof EventBusService.getInstance>;
-    let errorService: ReturnType<typeof ErrorService.getInstance>;
+    let eventBus: any;
+    let errorService: any;
 
-    const mockSettings: IPluginSettings = {
+    const mockSettings = {
         service: 'cloudinary',
         currentMode: 'tab',
         cloudinary: {
@@ -108,16 +96,24 @@ describe('CloudinaryService', () => {
     };
 
     beforeEach(() => {
-        // Reset des mocks
+        // Reset les mocks
         vi.clearAllMocks();
-        
-        // Setup des services
-        eventBus = EventBusService.getInstance();
-        errorService = ErrorService.getInstance();
-        
-        // Réinitialiser l'instance de CloudinaryService
+
         // @ts-ignore - Accès à la propriété privée pour les tests
         CloudinaryService.instance = undefined;
+
+        // Créer les mocks
+        eventBus = {
+            emit: vi.fn(),
+            on: vi.fn()
+        };
+
+        errorService = {
+            handleError: vi.fn(),
+            isNetworkError: vi.fn()
+        };
+
+        // Setup du service
         cloudinaryService = CloudinaryService.getInstance();
     });
 

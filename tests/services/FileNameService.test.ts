@@ -1,27 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { FileNameService } from '../../src/services/FileNameService';
-import { EventBusService } from '../../src/services/EventBusService';
+import { FileNameService } from '@/services/FileNameService';
+import { EventBusService } from '@/services/EventBusService';
 import { ErrorService } from '../../src/services/ErrorService';
-import { EventName } from '../../src/types/events';
-import { TFile, Notice } from '../setup';
+import { EventName } from '@/types/events';
+import { TFile } from '../mocks/obsidian';
+
+// Mock des services
+vi.mock('@/services/EventBusService', () => ({
+    EventBusService: {
+        getInstance: vi.fn().mockReturnValue({
+            emit: vi.fn(),
+            on: vi.fn()
+        })
+    }
+}));
 
 describe('FileNameService', () => {
    let service: FileNameService;
-   let mockApp: any;
+   let mockEventBus: any;
 
    beforeEach(() => {
-      mockApp = {
-         metadataCache: {
-            getFileCache: vi.fn()
-         }
+      // Reset les mocks
+      vi.clearAllMocks();
+
+      // Reset le singleton
+      // @ts-ignore - Accès à la propriété privée pour les tests
+      FileNameService.instance = undefined;
+
+      // Créer les mocks
+      mockEventBus = {
+         emit: vi.fn(),
+         on: vi.fn()
       };
-      service = FileNameService.getInstance(mockApp);
+
+      // Initialiser le service
+      service = FileNameService.getInstance();
    });
 
    it('should generate prefix from frontmatter if available', async () => {
       const mockFile = new TFile('My Test Note.md');
 
-      mockApp.metadataCache.getFileCache.mockReturnValue({
+      mockEventBus.on.mockReturnValue({
          frontmatter: {
             'img-prefix': 'custom-prefix'
          }
@@ -34,7 +53,7 @@ describe('FileNameService', () => {
    it('should fallback to note title if no frontmatter', async () => {
       const mockFile = new TFile('My Test Note.md');
 
-      mockApp.metadataCache.getFileCache.mockReturnValue({});
+      mockEventBus.on.mockReturnValue({});
 
       const prefix = await service.getFilePrefix(mockFile);
       expect(prefix).toBe('my-test-note');
@@ -43,7 +62,7 @@ describe('FileNameService', () => {
    it('should handle special characters in title', async () => {
       const mockFile = new TFile('My Test & Note!.md');
 
-      mockApp.metadataCache.getFileCache.mockReturnValue({});
+      mockEventBus.on.mockReturnValue({});
 
       const prefix = await service.getFilePrefix(mockFile);
       expect(prefix).toBe('my-test-and-note');

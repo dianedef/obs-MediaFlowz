@@ -8,7 +8,9 @@ import { ErrorService } from '@/services/ErrorService';
 // Mock des services
 vi.mock('@/services/EventBusService', () => ({
     EventBusService: {
-        getInstance: vi.fn()
+        getInstance: vi.fn().mockReturnValue({
+            emit: vi.fn()
+        })
     }
 }));
 
@@ -20,18 +22,25 @@ vi.mock('@/services/ErrorService', () => ({
 
 describe('CommandService', () => {
     let service: CommandService;
-    let mockPlugin: Plugin;
+    let mockPlugin: any;
     let mockEventBus: any;
     let mockErrorService: any;
 
     beforeEach(() => {
-        // Reset les mocks
-        vi.clearAllMocks();
-        
-        // Mock du plugin Obsidian
+        // Reset le singleton pour chaque test
+        // @ts-ignore - Accès à la propriété privée pour les tests
+        CommandService.instance = undefined;
+
+        // Créer un mock du plugin
         mockPlugin = {
-            addCommand: vi.fn().mockReturnValue({ id: 'test-command' }),
-        } as unknown as Plugin;
+            addCommand: vi.fn(),
+            app: {
+                workspace: {
+                    on: vi.fn(),
+                    off: vi.fn()
+                }
+            }
+        };
 
         // Création des mocks des services
         mockEventBus = {
@@ -48,10 +57,7 @@ describe('CommandService', () => {
         (EventBusService.getInstance as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockEventBus);
         (ErrorService.getInstance as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockErrorService);
 
-        // Réinitialiser l'instance
-        // @ts-ignore - Accès à la propriété privée pour les tests
-        CommandService.instance = undefined;
-        
+        // Initialiser le service avec le mock du plugin
         service = CommandService.getInstance(mockPlugin);
     });
 

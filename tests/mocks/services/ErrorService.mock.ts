@@ -1,40 +1,39 @@
 import { vi } from 'vitest';
 
-export const ErrorType = {
-    CONFIG: 'config',
-    UPLOAD: 'upload',
-    EDITOR: 'editor',
-    NETWORK: 'network',
-    UNEXPECTED: 'unexpected'
-} as const;
-
-const mockErrorService = {
-    handleError: vi.fn(),
-    isNetworkError: vi.fn(),
-    createError: vi.fn((type: string, message: string, originalError?: Error, context?: Record<string, unknown>) => ({
-        type,
-        message,
-        originalError,
-        context
-    }))
-};
-
-export class MockErrorService {
-    static instance: typeof mockErrorService | undefined;
-    
-    static getInstance() {
-        if (!MockErrorService.instance) {
-            MockErrorService.instance = mockErrorService;
-        }
-        return MockErrorService.instance;
-    }
-
-    static cleanup() {
-        MockErrorService.instance = undefined;
-    }
+export enum ErrorType {
+    CONFIG = 'CONFIG',
+    UPLOAD = 'UPLOAD',
+    NETWORK = 'NETWORK',
+    VALIDATION = 'VALIDATION',
+    UNKNOWN = 'UNKNOWN'
 }
 
-export const mockErrorServiceFactory = () => ({
-    ErrorService: MockErrorService,
-    ErrorType
-}); 
+export interface IError {
+    type: ErrorType;
+    message: string;
+    details?: any;
+}
+
+export const createError = (type: ErrorType, message: string, details?: any): IError => ({
+    type,
+    message,
+    details
+});
+
+export const mockErrorServiceFactory = () => {
+    const mockInstance = {
+        handleError: vi.fn(),
+        isNetworkError: vi.fn().mockImplementation((error: any) => {
+            return error?.type === ErrorType.NETWORK;
+        }),
+        createError: vi.fn().mockImplementation(createError)
+    };
+
+    return {
+        ErrorService: {
+            getInstance: vi.fn().mockReturnValue(mockInstance),
+            instance: mockInstance
+        },
+        ErrorType
+    };
+}; 

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { resolve } from 'path';
 
 export default defineConfig({
     test: {
@@ -10,5 +10,15 @@ export default defineConfig({
         typecheck: {
             tsconfig: './tsconfig.vitest.json'
         }
+    },
+    resolve: {
+        alias: {
+            '@': resolve(__dirname, './src'),
+            'obsidian': resolve(__dirname, './tests/mocks/obsidian.ts'),
+            '@codemirror/view': resolve(__dirname, './tests/mocks/codemirror.ts')
+        }
+    },
+    optimizeDeps: {
+        exclude: ['obsidian']
     }
 }); 
